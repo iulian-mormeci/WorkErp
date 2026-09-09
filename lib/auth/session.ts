@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE } from "@/lib/auth/constants";
 
@@ -44,6 +45,16 @@ export const getSession = cache(async () => {
 
   return session;
 });
+
+// Da usare in Server Action e pagine: garantisce uno user autenticato o
+// interrompe la richiesta con un redirect al login.
+export async function requireUser() {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+  return session.user;
+}
 
 export async function destroySession() {
   const cookieStore = await cookies();

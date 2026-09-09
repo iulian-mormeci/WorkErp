@@ -45,3 +45,6 @@ next-env.d.ts
 
 # playwright MCP session artifacts
 .playwright-mcp/
+
+# allegati caricati in locale (volume Docker in produzione)
+/data/uploads

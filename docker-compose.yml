@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-workerp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-workerp}
+      POSTGRES_DB: ${POSTGRES_DB:-workerp}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  db-data:

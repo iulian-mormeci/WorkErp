@@ -1,0 +1,190 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Auth ---
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nome         String
+  createdAt    DateTime @default(now())
+
+  sessions      Session[]
+  workSchedules WorkSchedule[]
+  events        Event[]
+  tasks         Task[]
+  jobs          Job[]
+  notes         Note[]
+  setting       Setting?
+  unoErpToken   UnoErpToken?
+
+  @@map("users")
+}
+
+// Id = token random generato lato app (32 byte, base64url), usato direttamente come cookie di sessione.
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// --- Orario di lavoro (Account) ---
+
+model WorkSchedule {
+  id             String @id @default(cuid())
+  userId         String
+  giornoSettimana Int    // 0 = domenica ... 6 = sabato
+  oraInizio      String // "HH:mm"
+  oraFine        String // "HH:mm"
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("work_schedules")
+}
+
+// --- Dashboard / Calendario ---
+
+enum EventType {
+  EVENTO
+  ATTIVITA
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  userId        String
+  titolo        String
+  descrizione   String?
+  inizio        DateTime
+  fine          DateTime
+  tuttoIlGiorno Boolean   @default(false)
+  luogo         String?
+  tipo          EventType @default(EVENTO)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("events")
+}
+
+// --- Attività ---
+
+enum TaskStatus {
+  DA_FARE
+  IN_CORSO
+  COMPLETATO
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  userId      String
+  titolo      String
+  descrizione String?
+  stato       TaskStatus @default(DA_FARE)
+  tag         String[]
+  scadenza    DateTime?
+  createdAt   DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("tasks")
+}
+
+// --- Lavori ---
+
+enum JobOrigine {
+  MANUALE
+  UNOERP
+}
+
+model Job {
+  id            String     @id @default(cuid())
+  userId        String
+  titolo        String
+  cliente       String?
+  indirizzo     String?
+  stato         String     @default("da_pianificare")
+  origine       JobOrigine @default(MANUALE)
+  unoerpId      String?    @unique
+  programmatoIl DateTime?
+  note          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("jobs")
+}
+
+// --- Manuali e guide (condivisi, non legati a un singolo utente) ---
+
+model Manual {
+  id        String   @id @default(cuid())
+  titolo    String
+  marca     String?
+  modello   String?
+  categoria String?
+  contenuto String   @db.Text
+  allegati  String[] // path relativi su volume Docker locale
+  createdAt DateTime @default(now())
+
+  @@map("manuals")
+}
+
+// --- Note ---
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  titolo    String
+  contenuto String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notes")
+}
+
+// --- Impostazioni ---
+
+model Setting {
+  userId String @id
+  tema   String @default("system")
+  altre  Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// --- Integrazione UnoERP ---
+
+model UnoErpToken {
+  userId       String   @id
+  token        String
+  refreshToken String
+  scadenza     DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("unoerp_tokens")
+}

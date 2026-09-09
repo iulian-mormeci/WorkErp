@@ -1,0 +1,57 @@
+import { randomBytes } from "crypto";
+import { cache } from "react";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import { SESSION_COOKIE } from "@/lib/auth/constants";
+
+export { SESSION_COOKIE };
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 giorni
+
+function generateSessionId() {
+  return randomBytes(32).toString("base64url");
+}
+
+export async function createSession(userId: string) {
+  const id = generateSessionId();
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+
+  await prisma.session.create({ data: { id, userId, expiresAt } });
+
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    expires: expiresAt,
+    path: "/",
+  });
+}
+
+// cache() deduplica la lookup sulla stessa richiesta se chiamata da più Server Component.
+export const getSession = cache(async () => {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!sessionId) return null;
+
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: { user: true },
+  });
+
+  if (!session || session.expiresAt < new Date()) {
+    return null;
+  }
+
+  return session;
+});
+
+export async function destroySession() {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
+
+  if (sessionId) {
+    await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});
+  }
+
+  cookieStore.delete(SESSION_COOKIE);
+}

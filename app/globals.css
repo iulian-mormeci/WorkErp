@@ -10,6 +10,7 @@
   --color-pine-strong: #21524a;
   --color-amber: #c47a1f;
   --color-danger: #b3432f;
+  --color-slate: #4c6b80;
 
   --shell-width-sidebar: 15rem;
   --shell-height-topbar: 3.5rem;
@@ -26,6 +27,7 @@
     --color-pine-strong: #6bb5a4;
     --color-amber: #d99a3f;
     --color-danger: #d97562;
+    --color-slate: #7fa3ba;
   }
 }
 
@@ -39,6 +41,7 @@
   --color-pine-strong: var(--color-pine-strong);
   --color-amber: var(--color-amber);
   --color-danger: var(--color-danger);
+  --color-slate: var(--color-slate);
   --font-sans: var(--font-plex-sans);
 }
 

@@ -1,0 +1,3 @@
+workerp.mormeci.it {
+	reverse_proxy app:3000
+}

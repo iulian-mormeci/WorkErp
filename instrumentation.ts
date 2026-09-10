@@ -2,13 +2,11 @@
  * Hook di avvio del server Next.js (gira una volta all'avvio del processo
  * Node, non durante `next build`). Schedula la sync oraria di UnoERP
  * colpendo una route API locale invece di importare direttamente
- * lib/unoerp/sync.ts: questo progetto ha anche proxy.ts, che fa compilare a
- * Next questo file anche per il pass Edge, dove tutto ciò che è raggiungibile
- * da quella catena di import (fino a node:crypto nell'helper di cifratura del
- * token) fallirebbe — l'Edge Runtime non supporta i moduli nativi `node:`.
- * Passando per /api/unoerp/cron la vera logica di sync resta dentro una
- * normale Route Handler solo-Node.js, e il grafo di import di questo file
- * resta banale.
+ * lib/unoerp/sync.ts, così la vera logica di sync (fino a node:crypto
+ * nell'helper di cifratura del token) resta dentro una normale Route
+ * Handler solo-Node.js: `export const runtime = "nodejs"` qui sotto dice a
+ * Next di compilare/eseguire questo file solo per il runtime Node, mai per
+ * l'Edge Runtime (rilevante perché questo progetto ha anche proxy.ts).
  */
 export const runtime = "nodejs";
 
@@ -16,13 +14,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NODE_ENV !== "production") return;
 
-  // `eval("require")` non esegue input esterno/dinamico: la stringa è un
-  // letterale fisso, usato solo per nascondere questo require dal grafo di
-  // import statico di webpack/Turbopack, cosicché il pass di compilazione
-  // Edge non tenti mai di risolvere i moduli nativi di node-cron. Al vero
-  // avvio, nel vero processo Node, il require normale funziona comunque.
-  const nodeRequire: NodeRequire = eval("require");
-  const cron = nodeRequire("node-cron") as typeof import("node-cron");
+  const cron = await import("node-cron");
 
   cron.schedule("0 * * * *", () => {
     void triggerUnoErpCron();

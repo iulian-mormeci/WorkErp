@@ -1,0 +1,37 @@
+# Deploy sul VPS: `docker compose -f docker-compose.prod.yml up -d`.
+# Richiede un file .env accanto a questo (vedi .env.example) e, per
+# scaricare l'immagine da GHCR se il repo è privato, un
+# `docker login ghcr.io` fatto una volta sola sul VPS.
+services:
+  app:
+    image: ghcr.io/OWNER/REPO:latest
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - uploads-data:/app/data/uploads
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    env_file: .env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  uploads-data:
+  caddy-data:
+  caddy-config:

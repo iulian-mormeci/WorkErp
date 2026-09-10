@@ -2,8 +2,12 @@ import { randomBytes } from "crypto";
 import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 
-// Volume Docker locale in produzione (vedi docker-compose.yml); su disco in dev.
-const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR ?? "./data/uploads");
+// Volume Docker locale in produzione (vedi docker-compose.prod.yml); su disco
+// in dev. `turbopackIgnore` evita che il valore dinamico (da env var) faccia
+// tracciare a Next l'intero progetto come possibile file da includere.
+const UPLOADS_DIR = path.resolve(
+  /* turbopackIgnore: true */ process.env.UPLOADS_DIR ?? "./data/uploads"
+);
 
 const MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",

@@ -108,5 +108,11 @@ export async function deleteEvent(id: string, redirectTo: string) {
   const user = await requireUser();
   await prisma.event.deleteMany({ where: { id, userId: user.id } });
   revalidateCalendarPaths();
-  redirect(redirectTo);
+
+  // redirectTo è un argomento bound lato client (visibile/modificabile come
+  // hidden field): senza validare che sia un path interno, un utente potrebbe
+  // farsi reindirizzare altrove dopo l'eliminazione (open redirect).
+  const safeRedirectTo =
+    redirectTo.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : "/calendario";
+  redirect(safeRedirectTo);
 }

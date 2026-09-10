@@ -1,7 +1,14 @@
+import { assertPublicHttpsUrl } from "@/lib/security/ssrf";
+
 const UNOERP_CALL_TIMEOUT_MS = 30_000;
 const PAGE_PAUSE_MS = 300;
 
+// `url` incorpora il baseUrl scelto dall'utente in Impostazioni: verificato
+// ad ogni chiamata (non solo al momento della connessione) per non essere
+// aggirabile con un DNS rebinding fra il connect e una sync successiva.
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  await assertPublicHttpsUrl(url);
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {

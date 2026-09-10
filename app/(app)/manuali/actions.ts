@@ -88,6 +88,11 @@ export async function deleteManualAttachment(manualId: string, relativePath: str
   const manual = await prisma.manual.findUnique({ where: { id: manualId } });
   if (!manual) return;
 
+  // Cancella il file solo se è davvero un allegato di questo manuale, altrimenti
+  // un utente autenticato potrebbe far cancellare l'allegato di un altro manuale
+  // passando un relativePath arbitrario (IDOR).
+  if (!manual.allegati.includes(relativePath)) return;
+
   await prisma.manual.update({
     where: { id: manualId },
     data: { allegati: manual.allegati.filter((path) => path !== relativePath) },

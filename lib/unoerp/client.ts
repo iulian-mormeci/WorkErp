@@ -6,13 +6,21 @@ const PAGE_PAUSE_MS = 300;
 // `url` incorpora il baseUrl scelto dall'utente in Impostazioni: verificato
 // ad ogni chiamata (non solo al momento della connessione) per non essere
 // aggirabile con un DNS rebinding fra il connect e una sync successiva.
+// `redirect: "manual"` impedisce a fetch di seguire da solo un redirect verso
+// un host non verificato: senza, un endpoint malevolo (o compromesso)
+// potrebbe rispondere con un 3xx verso un indirizzo interno e aggirare del
+// tutto il controllo appena fatto sull'URL originale.
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   await assertPublicHttpsUrl(url);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const res = await fetch(url, { ...init, redirect: "manual", signal: controller.signal });
+    if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+      throw new Error("unexpected_redirect");
+    }
+    return res;
   } finally {
     clearTimeout(timer);
   }

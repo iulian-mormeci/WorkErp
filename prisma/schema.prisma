@@ -27,8 +27,8 @@ model User {
   tasks         Task[]
   jobs          Job[]
   notes         Note[]
-  setting       Setting?
-  unoErpToken   UnoErpToken?
+  setting          Setting?
+  unoErpCredential UnoErpCredential?
 
   @@map("users")
 }
@@ -123,12 +123,15 @@ model Job {
   indirizzo     String?
   stato         String     @default("da_pianificare")
   origine       JobOrigine @default(MANUALE)
-  unoerpId      String?    @unique
+  unoerpId      String?
   programmatoIl DateTime?
   note          String?
+  categoria     String?
+  priorita      String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, unoerpId])
   @@index([userId])
   @@map("jobs")
 }
@@ -177,14 +180,24 @@ model Setting {
 }
 
 // --- Integrazione UnoERP ---
+//
+// UnoERP non usa refresh token/scadenza: lo scambio Basic-auth restituisce un
+// singolo token opaco valido finché l'ERP non lo invalida lato suo. Se scade,
+// l'utente deve riconnettersi (username/password non vengono mai salvati).
 
-model UnoErpToken {
-  userId       String   @id
-  token        String
-  refreshToken String
-  scadenza     DateTime
+model UnoErpCredential {
+  userId         String    @id
+  baseUrl        String
+  tokenEncrypted String
+  tokenIv        String
+  lastAuthAt     DateTime?
+  lastSyncAt     DateTime?
+  lastSyncStatus String? // success | error | running
+  lastSyncCount  Int       @default(0)
+  lastSyncError  String?
+  createdAt      DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("unoerp_tokens")
+  @@map("unoerp_credentials")
 }

@@ -116,6 +116,11 @@ export function JobItem({ job }: { job: Job }) {
             {[job.cliente, job.indirizzo].filter(Boolean).join(" · ")}
           </p>
         )}
+        {(job.categoria || job.priorita) && (
+          <p className="mt-1 text-xs text-muted">
+            {[job.categoria, job.priorita && `Priorità: ${job.priorita}`].filter(Boolean).join(" · ")}
+          </p>
+        )}
         {job.note && <p className="mt-1 text-sm text-muted">{job.note}</p>}
         {job.programmatoIl && (
           <p className="mt-1 text-xs text-muted">
@@ -125,6 +130,14 @@ export function JobItem({ job }: { job: Job }) {
               month: "short",
               year: "numeric",
             })}
+            {(() => {
+              const ora = job.programmatoIl.toLocaleTimeString("it-IT", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "Europe/Rome",
+              });
+              return ora !== "00:00" ? ` alle ${ora}` : "";
+            })()}
           </p>
         )}
       </div>

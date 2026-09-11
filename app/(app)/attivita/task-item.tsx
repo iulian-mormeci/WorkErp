@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { Circle, CircleDot, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import type { Task } from "@/lib/generated/prisma/client";
 import { TASK_STATUS_LABEL, nextTaskStatus } from "@/lib/task-status";
@@ -34,15 +35,16 @@ export function TaskItem({ task, onEdit }: { task: Task; onEdit: () => void }) {
       </button>
 
       <div className="min-w-0 flex-1">
-        <p
+        <Link
+          href={`/attivita/${task.id}`}
           className={
             task.stato === "COMPLETATO"
-              ? "text-sm text-muted line-through"
-              : "text-sm text-ink"
+              ? "text-sm text-muted line-through hover:underline"
+              : "text-sm text-ink hover:underline"
           }
         >
           {task.titolo}
-        </p>
+        </Link>
         {task.descrizione && (
           <p className="mt-0.5 text-sm text-muted">{task.descrizione}</p>
         )}

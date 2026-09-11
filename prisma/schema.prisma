@@ -150,6 +150,8 @@ model Task {
   createdAt   DateTime   @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
+  timelineEvents TimelineEvent[]
 
   @@index([userId])
   @@map("tasks")
@@ -180,10 +182,60 @@ model Job {
   priorita      String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
+  timelineEvents TimelineEvent[]
 
   @@unique([userId, unoerpId])
   @@index([userId])
   @@map("jobs")
+}
+
+// --- Checklist e timeline (condivise fra Attività e Lavori) ---
+//
+// Un ChecklistItem/TimelineEvent appartiene esattamente a un Task O a un
+// Job, mai entrambi né nessuno dei due — Prisma non ha un check polimorfico
+// nativo pulito, quindi i due FK sono entrambi opzionali e la validazione
+// "esattamente uno valorizzato" è lato server (vedi le rispettive actions).
+
+model ChecklistItem {
+  id           String    @id @default(cuid())
+  taskId       String?
+  jobId        String?
+  testo        String
+  completato   Boolean   @default(false)
+  completatoAt DateTime?
+  ordine       Int       @default(0)
+
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  job  Job?  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([jobId])
+  @@map("checklist_items")
+}
+
+enum TimelineEventTipo {
+  CREATO
+  INIZIATO
+  CHECKLIST_COMPLETATA
+  COMPLETATO
+  POSTICIPATO
+}
+
+model TimelineEvent {
+  id        String            @id @default(cuid())
+  taskId    String?
+  jobId     String?
+  tipo      TimelineEventTipo
+  dettaglio String?
+  createdAt DateTime          @default(now())
+
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  job  Job?  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([jobId])
+  @@map("timeline_events")
 }
 
 // --- Manuali e guide ---

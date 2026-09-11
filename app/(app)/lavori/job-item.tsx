@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { Pencil, Trash2, MapPin } from "lucide-react";
 import type { Job } from "@/lib/generated/prisma/client";
 import { jobStatusLabel } from "@/lib/job-status";
@@ -13,7 +14,9 @@ export function JobItem({ job, onEdit }: { job: Job; onEdit: () => void }) {
     <div className="group flex items-start gap-3 rounded-md border border-line bg-surface p-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-ink">{job.titolo}</p>
+          <Link href={`/lavori/${job.id}`} className="text-sm text-ink hover:underline">
+            {job.titolo}
+          </Link>
           <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-muted">
             {jobStatusLabel(job.stato)}
           </span>

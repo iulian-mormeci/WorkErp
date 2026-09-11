@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Circle, CircleDot, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import type { Task } from "@/lib/generated/prisma/client";
 import { TASK_STATUS_LABEL, nextTaskStatus } from "@/lib/task-status";
-import { deleteTask, setTaskStatus, updateTask } from "./actions";
+import { deleteTask, setTaskStatus } from "./actions";
 
 const STATUS_ICON = {
   DA_FARE: Circle,
@@ -12,76 +12,12 @@ const STATUS_ICON = {
   COMPLETATO: CheckCircle2,
 } as const;
 
-function toDateInputValue(date: Date | null) {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
-}
-
-export function TaskItem({ task }: { task: Task }) {
-  const [editing, setEditing] = useState(false);
+export function TaskItem({ task, onEdit }: { task: Task; onEdit: () => void }) {
   const [isPending, startTransition] = useTransition();
-  const updateThisTask = updateTask.bind(null, task.id);
-  const [state, formAction] = useActionState(updateThisTask, undefined);
 
   const StatusIcon = STATUS_ICON[task.stato];
   const overdue =
     task.scadenza && task.stato !== "COMPLETATO" && task.scadenza < new Date();
-
-  if (editing) {
-    return (
-      <form
-        action={async (formData) => {
-          await formAction(formData);
-          setEditing(false);
-        }}
-        className="space-y-2 rounded-md border border-line bg-surface p-3"
-      >
-        <input
-          name="titolo"
-          defaultValue={task.titolo}
-          required
-          className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
-        />
-        <textarea
-          name="descrizione"
-          defaultValue={task.descrizione ?? ""}
-          placeholder="Descrizione (opzionale)"
-          rows={2}
-          className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
-        />
-        <div className="flex gap-2">
-          <input
-            name="tag"
-            defaultValue={task.tag.join(", ")}
-            placeholder="Tag separati da virgola"
-            className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
-          />
-          <input
-            type="date"
-            name="scadenza"
-            defaultValue={toDateInputValue(task.scadenza)}
-            className="rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
-          />
-        </div>
-        {state?.error && <p className="text-sm text-danger">{state.error}</p>}
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="rounded-md bg-pine-strong px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-          >
-            Salva
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="rounded-md border border-line px-3 py-1.5 text-sm text-muted hover:text-ink"
-          >
-            Annulla
-          </button>
-        </div>
-      </form>
-    );
-  }
 
   return (
     <div className="group flex items-start gap-3 rounded-md border border-line bg-surface p-3">
@@ -126,6 +62,7 @@ export function TaskItem({ task }: { task: Task }) {
                   day: "numeric",
                   month: "short",
                 })}
+                {task.oraInizio && task.oraFine && ` · ${task.oraInizio}–${task.oraFine}`}
               </span>
             )}
           </div>
@@ -136,7 +73,7 @@ export function TaskItem({ task }: { task: Task }) {
         <button
           type="button"
           aria-label="Modifica"
-          onClick={() => setEditing(true)}
+          onClick={onEdit}
           className="rounded p-1 text-muted hover:text-ink"
         >
           <Pencil className="size-4" />
@@ -144,6 +81,7 @@ export function TaskItem({ task }: { task: Task }) {
         <button
           type="button"
           aria-label="Elimina"
+          disabled={isPending}
           onClick={() => startTransition(() => deleteTask(task.id))}
           className="rounded p-1 text-muted hover:text-danger"
         >

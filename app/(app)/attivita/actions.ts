@@ -19,6 +19,26 @@ function parseScadenza(raw: FormDataEntryValue | null) {
   return value ? new Date(value) : null;
 }
 
+function isValidHHMM(value: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+// Fascia oraria opzionale: se uno dei due campi è compilato devono esserlo
+// entrambi ed essere coerenti (fine dopo inizio).
+function parseFasciaOraria(formData: FormData): { oraInizio: string | null; oraFine: string | null } | { error: string } {
+  const oraInizio = String(formData.get("oraInizio") ?? "").trim();
+  const oraFine = String(formData.get("oraFine") ?? "").trim();
+
+  if (!oraInizio && !oraFine) return { oraInizio: null, oraFine: null };
+  if (!isValidHHMM(oraInizio) || !isValidHHMM(oraFine)) {
+    return { error: "Fascia oraria non valida." };
+  }
+  if (oraFine <= oraInizio) {
+    return { error: "L'orario di fine deve essere dopo l'inizio." };
+  }
+  return { oraInizio, oraFine };
+}
+
 export async function createTask(
   _prevState: TaskFormState,
   formData: FormData
@@ -30,6 +50,9 @@ export async function createTask(
     return { error: "Il titolo è obbligatorio." };
   }
 
+  const fascia = parseFasciaOraria(formData);
+  if ("error" in fascia) return fascia;
+
   await prisma.task.create({
     data: {
       userId: user.id,
@@ -37,10 +60,14 @@ export async function createTask(
       descrizione: String(formData.get("descrizione") ?? "").trim() || null,
       tag: parseTags(formData.get("tag")),
       scadenza: parseScadenza(formData.get("scadenza")),
+      oraInizio: fascia.oraInizio,
+      oraFine: fascia.oraFine,
     },
   });
 
   revalidatePath("/attivita");
+  revalidatePath("/");
+  revalidatePath("/calendario");
 }
 
 export async function updateTask(
@@ -55,6 +82,9 @@ export async function updateTask(
     return { error: "Il titolo è obbligatorio." };
   }
 
+  const fascia = parseFasciaOraria(formData);
+  if ("error" in fascia) return fascia;
+
   await prisma.task.updateMany({
     where: { id, userId: user.id },
     data: {
@@ -62,10 +92,14 @@ export async function updateTask(
       descrizione: String(formData.get("descrizione") ?? "").trim() || null,
       tag: parseTags(formData.get("tag")),
       scadenza: parseScadenza(formData.get("scadenza")),
+      oraInizio: fascia.oraInizio,
+      oraFine: fascia.oraFine,
     },
   });
 
   revalidatePath("/attivita");
+  revalidatePath("/");
+  revalidatePath("/calendario");
 }
 
 export async function setTaskStatus(id: string, stato: TaskStatus) {
@@ -81,4 +115,6 @@ export async function deleteTask(id: string) {
   const user = await requireUser();
   await prisma.task.deleteMany({ where: { id, userId: user.id } });
   revalidatePath("/attivita");
+  revalidatePath("/");
+  revalidatePath("/calendario");
 }

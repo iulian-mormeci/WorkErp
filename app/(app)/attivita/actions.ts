@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
+import { pushCounts } from "@/lib/realtime/counts";
 import type { TaskStatus } from "@/lib/generated/prisma/enums";
 
 export type TaskFormState = { error?: string } | undefined;
@@ -68,6 +69,7 @@ export async function createTask(
   revalidatePath("/attivita");
   revalidatePath("/");
   revalidatePath("/calendario");
+  void pushCounts(user.id);
 }
 
 export async function updateTask(
@@ -100,6 +102,7 @@ export async function updateTask(
   revalidatePath("/attivita");
   revalidatePath("/");
   revalidatePath("/calendario");
+  void pushCounts(user.id);
 }
 
 export async function setTaskStatus(id: string, stato: TaskStatus) {
@@ -109,6 +112,7 @@ export async function setTaskStatus(id: string, stato: TaskStatus) {
     data: { stato },
   });
   revalidatePath("/attivita");
+  void pushCounts(user.id);
 }
 
 export async function deleteTask(id: string) {
@@ -117,4 +121,5 @@ export async function deleteTask(id: string) {
   revalidatePath("/attivita");
   revalidatePath("/");
   revalidatePath("/calendario");
+  void pushCounts(user.id);
 }

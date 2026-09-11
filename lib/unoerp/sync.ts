@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptToken } from "@/lib/unoerp/crypto";
 import { fetchAllMieProgrammate } from "@/lib/unoerp/client";
 import { mapUnoErpActivity } from "@/lib/unoerp/mapping";
+import { pushCounts } from "@/lib/realtime/counts";
 
 const SYNC_TOTAL_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -67,6 +68,10 @@ async function performSync(userId: string, baseUrl: string, tokenEncrypted: stri
       unoerpId: { notIn: [...seenUnoErpIds], not: null },
     },
   });
+
+  // Una sync tocca in blocco molti Job insieme: un solo ricalcolo/push a
+  // fine ciclo, non uno per riga.
+  void pushCounts(userId);
 
   return { count: mapped.length };
 }

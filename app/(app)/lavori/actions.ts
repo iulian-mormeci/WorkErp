@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
+import { pushCounts } from "@/lib/realtime/counts";
 
 export type JobFormState = { error?: string } | undefined;
 
@@ -63,6 +64,7 @@ export async function createJob(
   });
 
   revalidateJobPaths();
+  void pushCounts(user.id);
 }
 
 export async function updateJob(
@@ -96,10 +98,12 @@ export async function updateJob(
   });
 
   revalidateJobPaths();
+  void pushCounts(user.id);
 }
 
 export async function deleteJob(id: string) {
   const user = await requireUser();
   await prisma.job.deleteMany({ where: { id, userId: user.id } });
   revalidateJobPaths();
+  void pushCounts(user.id);
 }

@@ -6,10 +6,29 @@ import { usePathname } from "next/navigation";
 import { MoreHorizontal, X } from "lucide-react";
 import { NAV_ITEMS, MOBILE_PRIMARY_COUNT } from "@/lib/nav-items";
 import { logout } from "@/app/logout-action";
+import { useRealtimeCounts, type Counts } from "@/lib/realtime/use-realtime-counts";
 
-export function MobileNav({ nome, isAdmin = false }: { nome: string; isAdmin?: boolean }) {
+function NavDot({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="absolute right-1/2 top-0.5 flex h-4 min-w-4 -translate-y-1/2 translate-x-3 items-center justify-center rounded-full bg-pine-strong px-1 text-[0.625rem] font-medium text-white">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+export function MobileNav({
+  nome,
+  isAdmin = false,
+  counts,
+}: {
+  nome: string;
+  isAdmin?: boolean;
+  counts: Counts;
+}) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+  const liveCounts = useRealtimeCounts(counts);
 
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
   const primaryItems = items.slice(0, MOBILE_PRIMARY_COUNT);
@@ -79,6 +98,7 @@ export function MobileNav({ nome, isAdmin = false }: { nome: string; isAdmin?: b
         {primaryItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
+          const count = item.countKey ? liveCounts[item.countKey] : 0;
           return (
             <Link
               key={item.href}
@@ -88,7 +108,10 @@ export function MobileNav({ nome, isAdmin = false }: { nome: string; isAdmin?: b
                 active ? "text-pine-strong" : "text-muted"
               }`}
             >
-              <Icon className="size-5" strokeWidth={2} />
+              <span className="relative">
+                <Icon className="size-5" strokeWidth={2} />
+                <NavDot count={count} />
+              </span>
               {item.label}
             </Link>
           );

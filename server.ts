@@ -13,7 +13,7 @@ import "dotenv/config";
 import { createServer } from "node:http";
 import next from "next";
 import { WebSocketServer, type WebSocket } from "ws";
-import { authenticateUpgrade } from "@/lib/realtime/authenticate-upgrade";
+import { authenticateUpgrade, isTrustedOrigin } from "@/lib/realtime/authenticate-upgrade";
 import { registerConnection, unregisterConnection } from "@/lib/realtime/hub";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -36,6 +36,12 @@ app.prepare().then(() => {
     if (pathname !== "/ws") {
       // Non nostro: lascia gestire a Next (es. l'HMR di sviluppo passa da qui).
       await upgradeHandler(req, socket, head);
+      return;
+    }
+
+    if (!isTrustedOrigin(req.headers.origin, req.headers.host)) {
+      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+      socket.destroy();
       return;
     }
 

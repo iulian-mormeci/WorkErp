@@ -24,3 +24,21 @@ export async function authenticateUpgrade(cookieHeader: string | undefined): Pro
 
   return session.userId;
 }
+
+// Il cookie di sessione è `sameSite: "lax"` (vedi createSession in
+// lib/auth/session.ts), che già limita parecchio l'hijacking cross-site,
+// ma il comportamento di SameSite sull'handshake WebSocket ha avuto
+// incoerenze storiche fra browser — un controllo esplicito dell'header
+// `Origin` è una difesa in profondità economica contro il Cross-Site
+// WebSocket Hijacking (CSWSH), indipendente da quei dettagli. Un browser
+// manda sempre `Origin` su un handshake WS: la sua assenza è già sospetta.
+// Confrontato con l'header `Host` della richiesta stessa, non con un
+// dominio hardcoded — funziona invariato in sviluppo e in produzione.
+export function isTrustedOrigin(origin: string | undefined, host: string | undefined): boolean {
+  if (!origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}

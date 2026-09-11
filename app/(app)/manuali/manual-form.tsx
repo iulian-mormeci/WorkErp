@@ -110,6 +110,22 @@ export function ManualForm({
           />
         </div>
 
+        <label className="flex items-start gap-2 text-sm text-muted">
+          <input
+            type="checkbox"
+            name="isPublic"
+            defaultChecked={manual?.isPublic ?? false}
+            className="mt-0.5 size-4 rounded border-line"
+          />
+          <span>
+            Proponi nel catalogo pubblico
+            <br />
+            <span className="text-xs">
+              Visibile agli altri utenti solo dopo l&apos;approvazione di un admin.
+            </span>
+          </span>
+        </label>
+
         {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
         <button

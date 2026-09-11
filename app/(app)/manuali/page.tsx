@@ -1,13 +1,18 @@
 import Link from "next/link";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen, Library } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 type Filters = { q?: string; marca?: string; modello?: string; categoria?: string };
 
-async function distinctMarche() {
+function myManualsScope(userId: string): Prisma.ManualWhereInput {
+  return { OR: [{ ownerId: userId }, { library: { some: { userId } } }] };
+}
+
+async function distinctMarche(userId: string) {
   const rows = await prisma.manual.findMany({
-    where: { marca: { not: null } },
+    where: { marca: { not: null }, ...myManualsScope(userId) },
     select: { marca: true },
     distinct: ["marca"],
     orderBy: { marca: "asc" },
@@ -15,9 +20,9 @@ async function distinctMarche() {
   return rows.map((row) => row.marca).filter((value): value is string => Boolean(value));
 }
 
-async function distinctModelli() {
+async function distinctModelli(userId: string) {
   const rows = await prisma.manual.findMany({
-    where: { modello: { not: null } },
+    where: { modello: { not: null }, ...myManualsScope(userId) },
     select: { modello: true },
     distinct: ["modello"],
     orderBy: { modello: "asc" },
@@ -25,9 +30,9 @@ async function distinctModelli() {
   return rows.map((row) => row.modello).filter((value): value is string => Boolean(value));
 }
 
-async function distinctCategorie() {
+async function distinctCategorie(userId: string) {
   const rows = await prisma.manual.findMany({
-    where: { categoria: { not: null } },
+    where: { categoria: { not: null }, ...myManualsScope(userId) },
     select: { categoria: true },
     distinct: ["categoria"],
     orderBy: { categoria: "asc" },
@@ -40,17 +45,18 @@ export default async function ManualiPage({
 }: {
   searchParams: Promise<Filters>;
 }) {
-  await requireUser();
+  const user = await requireUser();
   const filters = await searchParams;
 
   const [marche, modelli, categorie] = await Promise.all([
-    distinctMarche(),
-    distinctModelli(),
-    distinctCategorie(),
+    distinctMarche(user.id),
+    distinctModelli(user.id),
+    distinctCategorie(user.id),
   ]);
 
   const manuali = await prisma.manual.findMany({
     where: {
+      ...myManualsScope(user.id),
       ...(filters.q ? { titolo: { contains: filters.q, mode: "insensitive" } } : {}),
       ...(filters.marca ? { marca: filters.marca } : {}),
       ...(filters.modello ? { modello: filters.modello } : {}),
@@ -66,15 +72,24 @@ export default async function ManualiPage({
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-ink">Manuali e guide</h1>
-          <p className="mt-1 text-sm text-muted">Cerca per marca, modello e categoria.</p>
+          <p className="mt-1 text-sm text-muted">I tuoi manuali e quelli aggiunti dal catalogo.</p>
         </div>
-        <Link
-          href="/manuali/nuovo"
-          className="flex shrink-0 items-center gap-1.5 rounded-md bg-pine-strong px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          <Plus className="size-4" />
-          Nuovo
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/manuali/catalogo"
+            className="flex items-center gap-1.5 rounded-md border border-line px-3 py-2 text-sm text-ink hover:bg-paper"
+          >
+            <Library className="size-4" />
+            Catalogo
+          </Link>
+          <Link
+            href="/manuali/nuovo"
+            className="flex items-center gap-1.5 rounded-md bg-pine-strong px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            <Plus className="size-4" />
+            Nuovo
+          </Link>
+        </div>
       </header>
 
       <form className="flex flex-col gap-2 sm:flex-row" method="get">
@@ -140,7 +155,9 @@ export default async function ManualiPage({
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line py-16 text-center">
           <BookOpen className="size-6 text-muted" strokeWidth={1.5} />
           <p className="text-sm text-muted">
-            {hasFilters ? "Nessun manuale corrisponde ai filtri." : "Nessun manuale ancora."}
+            {hasFilters
+              ? "Nessun manuale corrisponde ai filtri."
+              : "Nessun manuale ancora. Creane uno o aggiungine uno dal catalogo."}
           </p>
         </div>
       ) : (
@@ -151,7 +168,23 @@ export default async function ManualiPage({
               href={`/manuali/${manual.id}`}
               className="rounded-md border border-line bg-surface p-3 hover:border-pine"
             >
-              <p className="text-sm text-ink">{manual.titolo}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-ink">{manual.titolo}</p>
+                {manual.ownerId !== user.id && (
+                  <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-muted">
+                    Dalla libreria
+                  </span>
+                )}
+                {manual.ownerId === user.id && manual.isPublic && (
+                  <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-muted">
+                    {manual.moderazioneStato === "APPROVATO"
+                      ? "Pubblico"
+                      : manual.moderazioneStato === "RIFIUTATO"
+                        ? "Rifiutato"
+                        : "In attesa di approvazione"}
+                  </span>
+                )}
+              </div>
               <p className="mt-0.5 text-xs text-muted">
                 {[manual.marca, manual.modello, manual.categoria].filter(Boolean).join(" · ") ||
                   "Nessun dettaglio aggiuntivo"}

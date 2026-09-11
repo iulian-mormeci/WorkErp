@@ -11,11 +11,12 @@ export default async function ModificaManualePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
 
   const manual = await prisma.manual.findUnique({ where: { id } });
   if (!manual) notFound();
+  if (manual.ownerId !== user.id && user.ruolo !== "ADMIN") notFound();
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">

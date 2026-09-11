@@ -56,6 +56,16 @@ export async function requireUser() {
   return session.user;
 }
 
+// Come requireUser(), ma reindirizza alla Dashboard anche un utente
+// autenticato che non ha ruolo ADMIN — non basta essere loggati.
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (user.ruolo !== "ADMIN") {
+    redirect("/");
+  }
+  return user;
+}
+
 export async function destroySession() {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value;

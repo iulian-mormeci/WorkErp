@@ -7,12 +7,13 @@ import { MoreHorizontal, X } from "lucide-react";
 import { NAV_ITEMS, MOBILE_PRIMARY_COUNT } from "@/lib/nav-items";
 import { logout } from "@/app/logout-action";
 
-export function MobileNav({ nome }: { nome: string }) {
+export function MobileNav({ nome, isAdmin = false }: { nome: string; isAdmin?: boolean }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const primaryItems = NAV_ITEMS.slice(0, MOBILE_PRIMARY_COUNT);
-  const restItems = NAV_ITEMS.slice(MOBILE_PRIMARY_COUNT);
+  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const primaryItems = items.slice(0, MOBILE_PRIMARY_COUNT);
+  const restItems = items.slice(MOBILE_PRIMARY_COUNT);
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
   const moreActive = restItems.some((item) => isActive(item.href));

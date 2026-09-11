@@ -48,3 +48,6 @@ next-env.d.ts
 
 # allegati caricati in locale (volume Docker in produzione)
 /data/uploads
+
+# stato locale di Claude Code (non del progetto)
+.claude/

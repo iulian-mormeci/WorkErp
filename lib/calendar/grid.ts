@@ -5,6 +5,12 @@
 export const HOUR_ROW_HEIGHT_PX = 48;
 export const DAY_GRID_HEIGHT_PX = HOUR_ROW_HEIGHT_PX * 24;
 
+// Vista compatta: le 24h stanno in 480px, meno dell'altezza massima già
+// usata da AutoScrollToHour — niente scroll, a scapito della leggibilità dei
+// blocchi (per questo resta un'alternativa esplicita, non il default).
+export const COMPACT_HOUR_ROW_HEIGHT_PX = 20;
+export const COMPACT_DAY_GRID_HEIGHT_PX = COMPACT_HOUR_ROW_HEIGHT_PX * 24;
+
 export function startOfDay(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -46,6 +52,14 @@ export function startOfYear(date: Date): Date {
 
 export function minutesSinceMidnight(date: Date): number {
   return date.getHours() * 60 + date.getMinutes();
+}
+
+/** Combina l'anno/mese/giorno di `date` con un orario "HH:mm". */
+export function combineDateAndTime(date: Date, hhmm: string): Date {
+  const [hours, minutes] = hhmm.split(":").map(Number);
+  const combined = new Date(date);
+  combined.setHours(hours, minutes, 0, 0);
+  return combined;
 }
 
 /** "2026-09-10" -> mezzanotte locale di quel giorno; input mancante/non valido -> oggi. */

@@ -1,82 +1,64 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
-import { getOccurrences } from "@/lib/calendar/occurrences";
-import { workingRangesByWeekday } from "@/lib/calendar/work-schedule";
-import { addDays, formatDateParam, startOfDay } from "@/lib/calendar/grid";
-import { TimeGrid } from "@/components/calendar/time-grid";
-import { AutoScrollToHour } from "@/components/calendar/auto-scroll";
+import type { WidgetType } from "@/lib/generated/prisma/enums";
+import { parseDateParam } from "@/lib/calendar/grid";
+import type { WidgetLayoutInput } from "./dashboard-actions";
+import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
+import { MiniCalendarWidget } from "@/components/dashboard/mini-calendar-widget";
+import { ProssimeAttivitaWidget } from "@/components/dashboard/prossime-attivita-widget";
+import { ProssimiLavoriWidget } from "@/components/dashboard/prossimi-lavori-widget";
+import { NoteRapideWidget } from "@/components/dashboard/note-rapide-widget";
+import { ManualiRapidiWidget } from "@/components/dashboard/manuali-rapidi-widget";
 
-export default async function DashboardPage() {
+const DEFAULT_LAYOUT: Record<WidgetType, Omit<WidgetLayoutInput, "tipoWidget">> = {
+  MINI_CALENDARIO: { x: 0, y: 0, w: 6, h: 9 },
+  PROSSIME_ATTIVITA: { x: 6, y: 0, w: 6, h: 4 },
+  PROSSIMI_LAVORI: { x: 6, y: 4, w: 6, h: 4 },
+  NOTE_RAPIDE: { x: 0, y: 9, w: 6, h: 4 },
+  MANUALI_RAPIDI: { x: 6, y: 8, w: 6, h: 5 },
+};
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ settimana?: string }>;
+}) {
   const user = await requireUser();
+  const { settimana } = await searchParams;
+  const baseDate = parseDateParam(settimana);
 
-  const today = startOfDay(new Date());
-  const tomorrow = addDays(today, 1);
+  const savedLayout = await prisma.dashboardWidgetLayout.findMany({ where: { userId: user.id } });
+  const savedByType = new Map(savedLayout.map((item) => [item.tipoWidget, item]));
 
-  const [occurrences, schedules, tasksOggi] = await Promise.all([
-    getOccurrences(user.id, today, tomorrow),
-    prisma.workSchedule.findMany({ where: { userId: user.id } }),
-    prisma.task.findMany({
-      where: { userId: user.id, scadenza: { gte: today, lt: tomorrow }, stato: { not: "COMPLETATO" } },
-      orderBy: { scadenza: "asc" },
-    }),
-  ]);
+  const layout: WidgetLayoutInput[] = (Object.keys(DEFAULT_LAYOUT) as WidgetType[]).map((tipoWidget) => {
+    const saved = savedByType.get(tipoWidget);
+    return saved
+      ? { tipoWidget, x: saved.x, y: saved.y, w: saved.w, h: saved.h }
+      : { tipoWidget, ...DEFAULT_LAYOUT[tipoWidget] };
+  });
 
-  const workingRanges = workingRangesByWeekday(schedules);
-  const nuovoEventoHref = `/calendario?vista=giorno&data=${formatDateParam(today)}&evento=nuovo`;
-
-  let earliestWorkingHour = 8;
-  for (const ranges of workingRanges.values()) {
-    for (const range of ranges) earliestWorkingHour = Math.min(earliestWorkingHour, Math.floor(range.start / 60));
-  }
+  const widgets = [
+    {
+      tipoWidget: "MINI_CALENDARIO" as const,
+      node: <MiniCalendarWidget userId={user.id} baseDate={baseDate} />,
+    },
+    { tipoWidget: "PROSSIME_ATTIVITA" as const, node: <ProssimeAttivitaWidget userId={user.id} /> },
+    { tipoWidget: "PROSSIMI_LAVORI" as const, node: <ProssimiLavoriWidget userId={user.id} /> },
+    { tipoWidget: "NOTE_RAPIDE" as const, node: <NoteRapideWidget userId={user.id} /> },
+    { tipoWidget: "MANUALI_RAPIDI" as const, node: <ManualiRapidiWidget userId={user.id} /> },
+  ];
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-8 md:px-10 md:py-10">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-ink">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted">
-            {today.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/calendario"
-            className="rounded-md border border-line px-3 py-2 text-sm text-ink hover:bg-paper"
-          >
-            Calendario completo
-          </Link>
-          <Link
-            href={nuovoEventoHref}
-            className="rounded-md bg-pine-strong px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-          >
-            Nuovo evento
-          </Link>
-        </div>
+    <div className="flex flex-col gap-4 px-4 py-8 md:px-6 md:py-10">
+      <header>
+        <h1 className="text-xl font-semibold text-ink">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted">
+          Trascina l&apos;intestazione di un widget per spostarlo, trascina l&apos;angolo per
+          ridimensionarlo.
+        </p>
       </header>
 
-      {tasksOggi.length > 0 && (
-        <div className="rounded-lg border border-line bg-surface p-3">
-          <p className="mb-2 text-sm font-medium text-ink">Da fare oggi</p>
-          <ul className="space-y-1">
-            {tasksOggi.map((task) => (
-              <li key={task.id}>
-                <Link href="/attivita" className="text-sm text-ink hover:text-pine-strong hover:underline">
-                  {task.titolo}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <AutoScrollToHour hour={earliestWorkingHour}>
-        <TimeGrid
-          days={[{ date: today, occurrences }]}
-          workingRangesByWeekday={workingRanges}
-          buildEventHref={(id) => `/calendario?vista=giorno&data=${formatDateParam(today)}&evento=${id}`}
-        />
-      </AutoScrollToHour>
+      <DashboardGrid initialLayout={layout} widgets={widgets} />
     </div>
   );
 }

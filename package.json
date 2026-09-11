@@ -22,6 +22,7 @@
     "prisma": "^7.10.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-grid-layout": "^2.2.4",
     "tsx": "^4.23.13"
   },
   "devDependencies": {

@@ -40,6 +40,8 @@ async function performSync(userId: string, baseUrl: string, tokenEncrypted: stri
         note: m.note ?? null,
         categoria: m.categoria ?? null,
         priorita: m.priorita ?? null,
+        oraInizio: m.oraInizio ?? null,
+        oraFine: m.oraFine ?? null,
       },
       // Non tocca `stato`: è l'avanzamento che l'utente segna a mano e una
       // sync (specialmente quella oraria automatica) non deve azzerarlo.
@@ -50,6 +52,8 @@ async function performSync(userId: string, baseUrl: string, tokenEncrypted: stri
         note: m.note ?? null,
         categoria: m.categoria ?? null,
         priorita: m.priorita ?? null,
+        oraInizio: m.oraInizio ?? null,
+        oraFine: m.oraFine ?? null,
       },
     });
   }

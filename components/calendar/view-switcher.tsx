@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Rows3 } from "lucide-react";
 import { addDays, addMonths, startOfWeek } from "@/lib/calendar/grid";
 
 export type CalendarVista = "giorno" | "settimana" | "mese" | "anno";
@@ -39,15 +39,18 @@ function periodLabel(vista: CalendarVista, date: Date): string {
 export function ViewSwitcher({
   vista,
   date,
+  compatta = false,
   buildHref,
 }: {
   vista: CalendarVista;
   date: Date;
-  buildHref: (vista: CalendarVista, date: Date) => string;
+  compatta?: boolean;
+  buildHref: (vista: CalendarVista, date: Date, compatta?: boolean) => string;
 }) {
-  const prevHref = buildHref(vista, shiftDate(vista, date, -1));
-  const nextHref = buildHref(vista, shiftDate(vista, date, 1));
-  const todayHref = buildHref(vista, new Date());
+  const prevHref = buildHref(vista, shiftDate(vista, date, -1), compatta);
+  const nextHref = buildHref(vista, shiftDate(vista, date, 1), compatta);
+  const todayHref = buildHref(vista, new Date(), compatta);
+  const canBeCompact = vista === "giorno" || vista === "settimana";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -75,18 +78,32 @@ export function ViewSwitcher({
         <p className="ml-2 text-sm font-medium capitalize text-ink">{periodLabel(vista, date)}</p>
       </div>
 
-      <div className="flex gap-1 rounded-md border border-line p-0.5">
-        {VISTE.map((v) => (
+      <div className="flex items-center gap-2">
+        {canBeCompact && (
           <Link
-            key={v.value}
-            href={buildHref(v.value, date)}
-            className={`rounded px-2.5 py-1 text-sm ${
-              v.value === vista ? "bg-pine-strong text-white" : "text-muted hover:text-ink"
+            href={buildHref(vista, date, !compatta)}
+            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm ${
+              compatta ? "border-pine bg-pine/10 text-pine-strong" : "border-line text-muted hover:text-ink"
             }`}
+            title="Comprime la griglia oraria per vedere tutta la giornata senza scorrere"
           >
-            {v.label}
+            <Rows3 className="size-4" />
+            Compatta
           </Link>
-        ))}
+        )}
+        <div className="flex gap-1 rounded-md border border-line p-0.5">
+          {VISTE.map((v) => (
+            <Link
+              key={v.value}
+              href={buildHref(v.value, date, v.value === "mese" || v.value === "anno" ? undefined : compatta)}
+              className={`rounded px-2.5 py-1 text-sm ${
+                v.value === vista ? "bg-pine-strong text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {v.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

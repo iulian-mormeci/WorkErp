@@ -19,22 +19,24 @@ import { YearGrid } from "@/components/calendar/year-grid";
 import { EventFormPanel } from "@/components/calendar/event-form-panel";
 import { AutoScrollToHour } from "@/components/calendar/auto-scroll";
 
-function buildHref(vista: CalendarVista, date: Date, evento?: string) {
+function buildHref(vista: CalendarVista, date: Date, opts?: { evento?: string; compatta?: boolean }) {
   const params = new URLSearchParams({ vista, data: formatDateParam(date) });
-  if (evento) params.set("evento", evento);
+  if (opts?.evento) params.set("evento", opts.evento);
+  if (opts?.compatta) params.set("compatta", "1");
   return `/calendario?${params.toString()}`;
 }
 
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; data?: string; evento?: string }>;
+  searchParams: Promise<{ vista?: string; data?: string; evento?: string; compatta?: string }>;
 }) {
   const user = await requireUser();
-  const { vista: vistaParam, data: dataParam, evento } = await searchParams;
+  const { vista: vistaParam, data: dataParam, evento, compatta: compattaParam } = await searchParams;
 
   const vista: CalendarVista = isCalendarVista(vistaParam) ? vistaParam : "settimana";
   const focusDate = parseDateParam(dataParam);
+  const compatta = compattaParam === "1" && (vista === "giorno" || vista === "settimana");
   const { start, end } = getVistaRange(vista, focusDate);
 
   const [occurrences, schedules] = await Promise.all([
@@ -49,7 +51,7 @@ export default async function CalendarioPage({
     if (!eventoEdit) notFound();
   }
 
-  const closeHref = buildHref(vista, focusDate);
+  const closeHref = buildHref(vista, focusDate, { compatta });
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-8 md:px-10 md:py-10">
@@ -60,7 +62,7 @@ export default async function CalendarioPage({
         </div>
         {!evento && (
           <Link
-            href={buildHref(vista, focusDate, "nuovo")}
+            href={buildHref(vista, focusDate, { evento: "nuovo", compatta })}
             className="rounded-md bg-pine-strong px-3 py-2 text-sm font-medium text-white hover:opacity-90"
           >
             Nuovo evento
@@ -76,24 +78,37 @@ export default async function CalendarioPage({
         />
       )}
 
-      <ViewSwitcher vista={vista} date={focusDate} buildHref={(v, d) => buildHref(v, d)} />
+      <ViewSwitcher
+        vista={vista}
+        date={focusDate}
+        compatta={compatta}
+        buildHref={(v, d, c) => buildHref(v, d, { compatta: c })}
+      />
 
-      {(vista === "giorno" || vista === "settimana") && (
-        <AutoScrollToHour hour={earliestWorkingHour(workingRanges)}>
+      {(vista === "giorno" || vista === "settimana") &&
+        (compatta ? (
           <TimeGrid
             days={buildDayBuckets(vista, focusDate, occurrences)}
             workingRangesByWeekday={workingRanges}
-            buildEventHref={(id) => buildHref(vista, focusDate, id)}
+            buildEventHref={(id) => buildHref(vista, focusDate, { evento: id, compatta })}
+            compact
           />
-        </AutoScrollToHour>
-      )}
+        ) : (
+          <AutoScrollToHour hour={earliestWorkingHour(workingRanges)}>
+            <TimeGrid
+              days={buildDayBuckets(vista, focusDate, occurrences)}
+              workingRangesByWeekday={workingRanges}
+              buildEventHref={(id) => buildHref(vista, focusDate, { evento: id })}
+            />
+          </AutoScrollToHour>
+        ))}
 
       {vista === "mese" && (
         <MonthGrid
           monthStart={startOfMonth(focusDate)}
           occurrencesByDay={groupByDay(occurrences)}
           buildDayHref={(date) => buildHref("giorno", date)}
-          buildEventHref={(id) => buildHref("mese", focusDate, id)}
+          buildEventHref={(id) => buildHref("mese", focusDate, { evento: id })}
         />
       )}
 

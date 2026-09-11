@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { HOUR_ROW_HEIGHT_PX, minutesSinceMidnight } from "@/lib/calendar/grid";
 
-export function CurrentTimeLine() {
+export function CurrentTimeLine({ rowHeightPx = HOUR_ROW_HEIGHT_PX }: { rowHeightPx?: number }) {
   const [minutes, setMinutes] = useState<number | null>(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function CurrentTimeLine() {
   // Evita un mismatch idratazione/SSR: niente riga finché il client non ha calcolato l'orario reale.
   if (minutes === null) return null;
 
-  const top = (minutes / 60) * HOUR_ROW_HEIGHT_PX;
+  const top = (minutes / 60) * rowHeightPx;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 z-20" style={{ top }}>

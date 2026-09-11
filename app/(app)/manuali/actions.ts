@@ -12,13 +12,17 @@ function textOrNull(formData: FormData, field: string) {
   return String(formData.get(field) ?? "").trim() || null;
 }
 
-async function saveNewAttachments(formData: FormData) {
+async function saveNewAttachments(formData: FormData): Promise<{ paths: string[] } | { error: string }> {
   const files = formData.getAll("allegati").filter((f): f is File => f instanceof File && f.size > 0);
   const paths: string[] = [];
   for (const file of files) {
-    paths.push(await saveUpload(file, "manuals"));
+    try {
+      paths.push(await saveUpload(file, "manuals"));
+    } catch {
+      return { error: "Un allegato supera i 100MB consentiti." };
+    }
   }
-  return paths;
+  return { paths };
 }
 
 export async function createManual(
@@ -32,7 +36,9 @@ export async function createManual(
     return { error: "Il titolo è obbligatorio." };
   }
 
-  const allegati = await saveNewAttachments(formData);
+  const saved = await saveNewAttachments(formData);
+  if ("error" in saved) return saved;
+  const allegati = saved.paths;
   const isPublic = formData.get("isPublic") === "on";
 
   const manual = await prisma.manual.create({
@@ -71,7 +77,9 @@ export async function updateManual(
     return { error: "Manuale non trovato." };
   }
 
-  const newAttachments = await saveNewAttachments(formData);
+  const savedNew = await saveNewAttachments(formData);
+  if ("error" in savedNew) return savedNew;
+  const newAttachments = savedNew.paths;
   const isPublic = formData.get("isPublic") === "on";
   // Ogni transizione privato -> pubblico richiede una nuova approvazione,
   // anche se in passato era già stato approvato: mai fidarsi di un

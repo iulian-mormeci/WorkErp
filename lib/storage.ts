@@ -9,6 +9,10 @@ const UPLOADS_DIR = path.resolve(
   /* turbopackIgnore: true */ process.env.UPLOADS_DIR ?? "./data/uploads"
 );
 
+// Nessun limite di spazio totale per ora, ma un tetto per singolo file:
+// senza, un upload enorme può riempire il volume Docker senza preavviso.
+export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 const MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
   ".png": "image/png",
@@ -27,6 +31,10 @@ function safeFilename(originalName: string) {
 
 // Ritorna il path relativo (da salvare in DB) del file scritto sotto subdir.
 export async function saveUpload(file: File, subdir: string) {
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error("file_too_large");
+  }
+
   const dir = path.join(UPLOADS_DIR, subdir);
   await mkdir(dir, { recursive: true });
 

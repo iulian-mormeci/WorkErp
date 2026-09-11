@@ -35,6 +35,7 @@ model User {
   jobs          Job[]
   notes         Note[]
   sales         Sale[]
+  documents     Document[]
   setting          Setting?
   unoErpCredential UnoErpCredential?
   category         UserCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -267,6 +268,28 @@ model Sale {
 
   @@index([userId])
   @@map("sales")
+}
+
+// --- Documenti (file manager personale, funge anche da backup) ---
+
+model Document {
+  id            String   @id @default(cuid())
+  userId        String
+  nomeOriginale String
+  // Path libero tipo "Fatture/2026", non un albero di cartelle separato — le
+  // cartelle in UI sono i valori distinti raggruppati (stesso spirito
+  // minimale di Manual.categoria). Stringa vuota = nessuna cartella.
+  cartella      String   @default("")
+  tag           String[]
+  percorso      String
+  dimensione    Int
+  mimeType      String
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("documents")
 }
 
 // --- Impostazioni ---

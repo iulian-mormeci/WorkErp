@@ -14,11 +14,18 @@ datasource db {
 
 // --- Auth ---
 
+enum Ruolo {
+  USER
+  ADMIN
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
   nome         String
+  ruolo        Ruolo    @default(USER)
+  categoryId   String?
   createdAt    DateTime @default(now())
 
   sessions      Session[]
@@ -27,10 +34,24 @@ model User {
   tasks         Task[]
   jobs          Job[]
   notes         Note[]
+  sales         Sale[]
   setting          Setting?
   unoErpCredential UnoErpCredential?
+  category         UserCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  manuals          Manual[]
+  manualLibrary    UserManualLibrary[]
+  dashboardWidgets DashboardWidgetLayout[]
 
   @@map("users")
+}
+
+model UserCategory {
+  id   String @id @default(cuid())
+  nome String
+
+  users User[]
+
+  @@map("user_categories")
 }
 
 // Id = token random generato lato app (32 byte, base64url), usato direttamente come cookie di sessione.
@@ -61,6 +82,29 @@ model WorkSchedule {
 }
 
 // --- Dashboard / Calendario ---
+
+enum WidgetType {
+  MINI_CALENDARIO
+  PROSSIME_ATTIVITA
+  PROSSIMI_LAVORI
+  NOTE_RAPIDE
+  MANUALI_RAPIDI
+}
+
+model DashboardWidgetLayout {
+  id         String     @id @default(cuid())
+  userId     String
+  tipoWidget WidgetType
+  x          Int
+  y          Int
+  w          Int
+  h          Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tipoWidget])
+  @@map("dashboard_widget_layouts")
+}
 
 enum EventType {
   EVENTO
@@ -100,6 +144,8 @@ model Task {
   stato       TaskStatus @default(DA_FARE)
   tag         String[]
   scadenza    DateTime?
+  oraInizio   String? // "HH:mm" — fascia oraria disponibile per l'esecuzione, nel giorno di `scadenza`
+  oraFine     String?
   createdAt   DateTime   @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -124,7 +170,10 @@ model Job {
   stato         String     @default("da_pianificare")
   origine       JobOrigine @default(MANUALE)
   unoerpId      String?
-  programmatoIl DateTime?
+  programmatoIl DateTime? // quando è (stato) effettivamente programmato — via UnoERP o a mano
+  scadenza      DateTime? // entro quando va completato — indipendente da programmatoIl
+  oraInizio     String? // "HH:mm" — fascia oraria disponibile per l'esecuzione
+  oraFine       String?
   note          String?
   categoria     String?
   priorita      String?
@@ -136,19 +185,52 @@ model Job {
   @@map("jobs")
 }
 
-// --- Manuali e guide (condivisi, non legati a un singolo utente) ---
+// --- Manuali e guide ---
+//
+// Ogni manuale ha un proprietario. Un proprietario può marcarlo isPublic per
+// proporlo al catalogo condiviso, ma finché un admin non lo APPROVA resta
+// visibile solo a lui (moderazioneStato torna IN_ATTESA ad ogni transizione
+// false->true di isPublic). Gli altri utenti lo trovano nel catalogo e
+// possono aggiungerlo alla propria libreria (UserManualLibrary) senza
+// diventarne proprietari.
+
+enum ModerazioneStato {
+  IN_ATTESA
+  APPROVATO
+  RIFIUTATO
+}
 
 model Manual {
-  id        String   @id @default(cuid())
-  titolo    String
-  marca     String?
-  modello   String?
-  categoria String?
-  contenuto String   @db.Text
-  allegati  String[] // path relativi su volume Docker locale
-  createdAt DateTime @default(now())
+  id               String           @id @default(cuid())
+  ownerId          String
+  titolo           String
+  marca            String?
+  modello          String?
+  categoria        String?
+  contenuto        String           @db.Text
+  allegati         String[] // path relativi su volume Docker locale
+  isPublic         Boolean          @default(false)
+  moderazioneStato ModerazioneStato @default(IN_ATTESA)
+  createdAt        DateTime         @default(now())
 
+  owner   User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  library UserManualLibrary[]
+
+  @@index([ownerId])
   @@map("manuals")
+}
+
+model UserManualLibrary {
+  id       String   @id @default(cuid())
+  userId   String
+  manualId String
+  addedAt  DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manual Manual @relation(fields: [manualId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, manualId])
+  @@map("user_manual_library")
 }
 
 // --- Note ---
@@ -165,6 +247,26 @@ model Note {
 
   @@index([userId])
   @@map("notes")
+}
+
+// --- Vendite ---
+
+model Sale {
+  id       String   @id @default(cuid())
+  userId   String
+  cliente  String
+  // Imponibile, IVA esclusa. L'aliquota serve a calcolare separatamente
+  // l'IVA e il totale lordo — non è salvata già scorporata nel prezzo.
+  prezzo   Float
+  aliquota Float
+  data     DateTime
+  note     String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sales")
 }
 
 // --- Impostazioni ---

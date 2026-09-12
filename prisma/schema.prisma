@@ -40,6 +40,7 @@ model User {
   sentMessages               Message[]
   pushSubscriptions       PushSubscription[]
   notificationPreference  NotificationPreference?
+  noteShares              NoteShare[]
   setting          Setting?
   unoErpCredential UnoErpCredential?
   category         UserCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -304,10 +305,31 @@ model Note {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares NoteShare[]
 
   @@index([userId])
   @@map("notes")
+}
+
+// Condivisione di una nota con altri utenti (uno o più — "un gruppo" è solo
+// più righe, non un Group persistente e riusabile: tenerlo ad hoc per nota
+// evita di introdurre una gestione di gruppi non richiesta). Chi è in
+// questa tabella può leggere E modificare la nota (deciso col proprietario),
+// ma non eliminarla né decidere con chi altro condividerla — solo il
+// proprietario controlla la lista dei condivisi.
+model NoteShare {
+  id        String   @id @default(cuid())
+  noteId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([noteId, userId])
+  @@index([userId])
+  @@map("note_shares")
 }
 
 // --- Vendite ---

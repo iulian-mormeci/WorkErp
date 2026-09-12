@@ -58,7 +58,7 @@ export default async function AttivitaPage({
   const hasExtraFilters = Boolean(filters.q || filters.tag || filters.dal || filters.al);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
       <AttivitaBoard tasks={tasks}>
       <nav className="flex gap-1 border-b border-line">
         {FILTERS.map((filter) => {

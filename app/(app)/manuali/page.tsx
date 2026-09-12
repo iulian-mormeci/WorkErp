@@ -68,7 +68,7 @@ export default async function ManualiPage({
   const hasFilters = Boolean(filters.q || filters.marca || filters.modello || filters.categoria);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-ink">Manuali e guide</h1>

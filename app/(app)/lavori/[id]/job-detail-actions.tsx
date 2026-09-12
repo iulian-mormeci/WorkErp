@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2, CalendarClock } from "lucide-react";
+import { Pencil, Trash2, CalendarClock, CheckCircle2 } from "lucide-react";
 import type { Job } from "@/lib/generated/prisma/client";
 import { Drawer } from "@/components/ui/drawer";
 import { PostponeForm } from "@/components/detail/postpone-form";
 import { JobForm } from "../job-form";
-import { deleteJob, postponeJob } from "../actions";
+import { deleteJob, postponeJob, closeJob } from "../actions";
 
 type DrawerState = "edit" | "postpone" | null;
 
@@ -24,6 +24,18 @@ export function JobDetailActions({ job }: { job: Job }) {
   return (
     <>
       <div className="flex shrink-0 items-center gap-1">
+        {job.stato !== "completato" && (
+          <button
+            type="button"
+            aria-label="Completa"
+            title="Segna come completato"
+            disabled={isPending}
+            onClick={() => startTransition(() => closeJob(job.id))}
+            className="rounded p-1.5 text-muted hover:text-pine-strong"
+          >
+            <CheckCircle2 className="size-4" />
+          </button>
+        )}
         {canPostpone && (
           <button
             type="button"

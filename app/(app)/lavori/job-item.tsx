@@ -2,10 +2,10 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { Pencil, Trash2, MapPin } from "lucide-react";
+import { Pencil, Trash2, MapPin, CheckCircle2 } from "lucide-react";
 import type { Job } from "@/lib/generated/prisma/client";
 import { jobStatusLabel } from "@/lib/job-status";
-import { deleteJob } from "./actions";
+import { deleteJob, closeJob } from "./actions";
 
 export function JobItem({ job, onEdit }: { job: Job; onEdit: () => void }) {
   const [isPending, startTransition] = useTransition();
@@ -70,6 +70,18 @@ export function JobItem({ job, onEdit }: { job: Job; onEdit: () => void }) {
       </div>
 
       <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        {job.stato !== "completato" && (
+          <button
+            type="button"
+            aria-label="Completa"
+            title="Segna come completato"
+            disabled={isPending}
+            onClick={() => startTransition(() => closeJob(job.id))}
+            className="rounded p-1 text-muted hover:text-pine-strong"
+          >
+            <CheckCircle2 className="size-4" />
+          </button>
+        )}
         <button
           type="button"
           aria-label="Modifica"

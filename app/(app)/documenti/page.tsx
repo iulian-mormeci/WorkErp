@@ -39,7 +39,7 @@ export default async function DocumentiPage({ searchParams }: { searchParams: Pr
   const hasFilters = Boolean(filters.cartella || filters.tag || filters.q);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
       <DocumentiBoard documents={documents}>
         <form className="flex flex-wrap gap-2" method="get">
           <input

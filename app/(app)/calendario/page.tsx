@@ -54,7 +54,7 @@ export default async function CalendarioPage({
   const closeHref = buildHref(vista, focusDate, { compatta });
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-4 px-6 py-8 md:px-10 md:py-10">
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-ink">Calendario</h1>

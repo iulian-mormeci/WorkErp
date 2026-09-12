@@ -24,7 +24,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   const overdue = task.scadenza && task.stato !== "COMPLETATO" && task.scadenza < new Date();
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
       <Link href="/attivita" className="flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft className="size-4" />
         Attività

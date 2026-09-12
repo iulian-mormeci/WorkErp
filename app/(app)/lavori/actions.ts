@@ -122,6 +122,23 @@ export async function updateJob(
   void pushCounts(user.id);
 }
 
+// Azione rapida per chiudere un lavoro appena finito, senza aprire il
+// drawer di modifica — funziona anche sui lavori UnoERP: la sync non
+// sovrascrive mai `stato` (è l'avanzamento che l'utente segna a mano), per
+// cui marcarlo completato qui resta valido anche dopo la sync successiva.
+export async function closeJob(id: string) {
+  const user = await requireUser();
+
+  const existing = await prisma.job.findUnique({ where: { id } });
+  if (!existing || existing.userId !== user.id || existing.stato === "completato") return;
+
+  await prisma.job.updateMany({ where: { id, userId: user.id }, data: { stato: "completato" } });
+  await recordTimelineEvent({ jobId: id }, "COMPLETATO");
+
+  revalidateJobPaths(id);
+  void pushCounts(user.id);
+}
+
 export async function deleteJob(id: string) {
   const user = await requireUser();
   await prisma.job.deleteMany({ where: { id, userId: user.id } });

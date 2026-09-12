@@ -12,7 +12,7 @@ export default async function AccountPage() {
   });
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-8 px-6 py-8 md:px-10 md:py-10">
       <header>
         <h1 className="text-xl font-semibold text-ink">Account</h1>
         <p className="mt-1 text-sm text-muted">Dati personali e orario di lavoro.</p>

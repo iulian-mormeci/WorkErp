@@ -89,7 +89,7 @@ export default async function VenditePage({ searchParams }: { searchParams: Prom
     .map(([label, value]) => ({ label, value }));
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
       <VenditeBoard sales={sales}>
         <form className="flex flex-wrap gap-2" method="get">
           <input

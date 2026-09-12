@@ -26,7 +26,7 @@ export default async function CatalogoManualiPage({
   });
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+    <div className="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
       <Link href="/manuali" className="flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft className="size-4" />
         Manuali e guide

@@ -105,6 +105,43 @@ export function getVistaRange(
   return { start, end };
 }
 
+/**
+ * Range di ore [start, end) da mostrare nella griglia di giorno/settimana:
+ * circoscritto a orario di lavoro + occorrenze effettive dei giorni mostrati
+ * (con un'ora di margine), invece delle 24h fisse — così di norma si vede
+ * l'intera giornata senza dover scrollare. Nessun dato -> finestra
+ * lavorativa tipica di fallback.
+ */
+export function computeVisibleHourWindow(
+  days: { date: Date; occurrences: { start: Date; end: Date; allDay: boolean }[] }[],
+  workingRangesByWeekday: Map<number, { start: number; end: number }[]>
+): { startHour: number; endHour: number } {
+  let minMinute = Infinity;
+  let maxMinute = -Infinity;
+
+  for (const { date, occurrences } of days) {
+    for (const range of workingRangesByWeekday.get(date.getDay()) ?? []) {
+      minMinute = Math.min(minMinute, range.start);
+      maxMinute = Math.max(maxMinute, range.end);
+    }
+    for (const o of occurrences) {
+      if (o.allDay) continue;
+      const start = minutesSinceMidnight(o.start);
+      const durationMinutes = Math.max(0, (o.end.getTime() - o.start.getTime()) / 60_000);
+      minMinute = Math.min(minMinute, start);
+      maxMinute = Math.max(maxMinute, Math.min(24 * 60, start + durationMinutes));
+    }
+  }
+
+  if (!Number.isFinite(minMinute) || !Number.isFinite(maxMinute)) {
+    return { startHour: 7, endHour: 20 };
+  }
+
+  const startHour = Math.max(0, Math.floor(minMinute / 60) - 1);
+  const endHour = Math.min(24, Math.max(startHour + 1, Math.ceil(maxMinute / 60) + 1));
+  return { startHour, endHour };
+}
+
 export type Positioned<T> = T & { column: number; columns: number };
 
 /**

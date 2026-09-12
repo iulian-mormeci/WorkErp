@@ -6,6 +6,7 @@ import { getOccurrences } from "@/lib/calendar/occurrences";
 import { workingRangesByWeekday } from "@/lib/calendar/work-schedule";
 import {
   addDays,
+  computeVisibleHourWindow,
   formatDateParam,
   getVistaRange,
   parseDateParam,
@@ -86,22 +87,31 @@ export default async function CalendarioPage({
       />
 
       {(vista === "giorno" || vista === "settimana") &&
-        (compatta ? (
-          <TimeGrid
-            days={buildDayBuckets(vista, focusDate, occurrences)}
-            workingRangesByWeekday={workingRanges}
-            buildEventHref={(id) => buildHref(vista, focusDate, { evento: id, compatta })}
-            compact
-          />
-        ) : (
-          <AutoScrollToHour hour={earliestWorkingHour(workingRanges)}>
+        (() => {
+          const dayBuckets = buildDayBuckets(vista, focusDate, occurrences);
+          const { startHour, endHour } = computeVisibleHourWindow(dayBuckets, workingRanges);
+
+          return compatta ? (
             <TimeGrid
-              days={buildDayBuckets(vista, focusDate, occurrences)}
+              days={dayBuckets}
               workingRangesByWeekday={workingRanges}
-              buildEventHref={(id) => buildHref(vista, focusDate, { evento: id })}
+              buildEventHref={(id) => buildHref(vista, focusDate, { evento: id, compatta })}
+              startHour={startHour}
+              endHour={endHour}
+              compact
             />
-          </AutoScrollToHour>
-        ))}
+          ) : (
+            <AutoScrollToHour targetHour={earliestWorkingHour(workingRanges)} gridStartHour={startHour}>
+              <TimeGrid
+                days={dayBuckets}
+                workingRangesByWeekday={workingRanges}
+                buildEventHref={(id) => buildHref(vista, focusDate, { evento: id })}
+                startHour={startHour}
+                endHour={endHour}
+              />
+            </AutoScrollToHour>
+          );
+        })()}
 
       {vista === "mese" && (
         <MonthGrid

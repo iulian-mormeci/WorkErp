@@ -4,7 +4,9 @@
 # `docker login ghcr.io` fatto una volta sola sul VPS.
 services:
   app:
-    image: ghcr.io/OWNER/REPO:latest
+    # OWNER/REPO in minuscolo (i tag Docker/OCI non ammettono maiuscole),
+    # anche se il repo su GitHub le usa nel nome — vedi .github/workflows/docker-publish.yml
+    image: ghcr.io/owner/repo:latest
     env_file: .env
     depends_on:
       - db

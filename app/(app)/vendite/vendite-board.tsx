@@ -2,14 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
-import type { Sale } from "@/lib/generated/prisma/client";
+import type { SaleWithItems } from "@/lib/sales";
 import { Drawer } from "@/components/ui/drawer";
 import { SaleForm } from "./sale-form";
 import { SaleItem } from "./sale-item";
 
-type DrawerState = { mode: "create" } | { mode: "edit"; sale: Sale } | null;
+type DrawerState = { mode: "create" } | { mode: "edit"; sale: SaleWithItems } | null;
 
-export function VenditeBoard({ sales, children }: { sales: Sale[]; children?: ReactNode }) {
+export function VenditeBoard({ sales, children }: { sales: SaleWithItems[]; children?: ReactNode }) {
   const [drawer, setDrawer] = useState<DrawerState>(null);
 
   return (

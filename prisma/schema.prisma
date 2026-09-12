@@ -338,18 +338,41 @@ model Sale {
   id       String   @id @default(cuid())
   userId   String
   cliente  String
-  // Imponibile, IVA esclusa. L'aliquota serve a calcolare separatamente
-  // l'IVA e il totale lordo — non è salvata già scorporata nel prezzo.
-  prezzo   Float
+  // L'aliquota IVA resta unica per l'intera vendita (non per riga) — le
+  // vendite di questa azienda applicano sempre la stessa aliquota a tutti
+  // gli articoli di uno stesso ordine.
   aliquota Float
   data     DateTime
+  // Data stimata di consegna al cliente, distinta dalla data della vendita
+  // (`data`, che è quando è stato registrato/effettuato l'ordine). Opzionale
+  // perché non sempre nota al momento della registrazione.
+  dataConsegnaPrevista DateTime?
   note     String?
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items SaleLine[]
 
   @@index([userId])
   @@map("sales")
+}
+
+// Riga di dettaglio di una vendita: un articolo venduto con la sua quantità
+// e il suo prezzo unitario. Una vendita ha sempre almeno una riga.
+model SaleLine {
+  id             String @id @default(cuid())
+  saleId         String
+  descrizione    String
+  quantita       Int
+  // Imponibile unitario, IVA esclusa — l'IVA si calcola sul totale della
+  // vendita usando `Sale.aliquota`.
+  prezzoUnitario Float
+  ordine         Int    @default(0)
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@map("sale_lines")
 }
 
 // --- Documenti (file manager personale, funge anche da backup) ---

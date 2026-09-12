@@ -1,9 +1,13 @@
+import type { Sale, SaleLine } from "@/lib/generated/prisma/client";
+
+export type SaleWithItems = Sale & { items: SaleLine[] };
+
 // La provvigione è una quota fissa che l'utente guadagna su ogni vendita
 // effettuata per conto dell'azienda per cui lavora (non una % configurabile).
 export const PROVVIGIONE_RATE = 0.05;
 
 export type SaleAmounts = {
-  /** Imponibile, IVA esclusa — è il valore salvato in `Sale.prezzo`. */
+  /** Imponibile, IVA esclusa — somma di quantità × prezzo unitario di tutte le righe. */
   imponibile: number;
   iva: number;
   totaleLordo: number;
@@ -11,13 +15,19 @@ export type SaleAmounts = {
   provvigione: number;
 };
 
-export function computeSaleAmounts(prezzo: number, aliquota: number): SaleAmounts {
-  const iva = prezzo * (aliquota / 100);
+export type SaleLineInput = { quantita: number; prezzoUnitario: number };
+
+export function sumSaleLines(items: SaleLineInput[]): number {
+  return items.reduce((sum, item) => sum + item.quantita * item.prezzoUnitario, 0);
+}
+
+export function computeSaleAmounts(imponibile: number, aliquota: number): SaleAmounts {
+  const iva = imponibile * (aliquota / 100);
   return {
-    imponibile: prezzo,
+    imponibile,
     iva,
-    totaleLordo: prezzo + iva,
-    provvigione: prezzo * PROVVIGIONE_RATE,
+    totaleLordo: imponibile + iva,
+    provvigione: imponibile * PROVVIGIONE_RATE,
   };
 }
 

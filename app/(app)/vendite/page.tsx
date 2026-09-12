@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
-import { computeSaleAmounts, formatCurrency } from "@/lib/sales";
+import { computeSaleAmounts, formatCurrency, sumSaleLines } from "@/lib/sales";
 import { BarChart } from "@/components/charts/bar-chart";
 import { VenditeBoard } from "./vendite-board";
 
@@ -52,6 +52,7 @@ export default async function VenditePage({ searchParams }: { searchParams: Prom
           }
         : {}),
     },
+    include: { items: { orderBy: { ordine: "asc" } } },
     orderBy: { data: "desc" },
   });
 
@@ -59,7 +60,7 @@ export default async function VenditePage({ searchParams }: { searchParams: Prom
 
   const totals = sales.reduce(
     (acc, sale) => {
-      const amounts = computeSaleAmounts(sale.prezzo, sale.aliquota);
+      const amounts = computeSaleAmounts(sumSaleLines(sale.items), sale.aliquota);
       acc.imponibile += amounts.imponibile;
       acc.iva += amounts.iva;
       acc.totaleLordo += amounts.totaleLordo;
@@ -72,7 +73,7 @@ export default async function VenditePage({ searchParams }: { searchParams: Prom
   const monthlyMap = new Map<string, number>();
   for (const sale of sales) {
     const key = monthKey(sale.data);
-    monthlyMap.set(key, (monthlyMap.get(key) ?? 0) + sale.prezzo);
+    monthlyMap.set(key, (monthlyMap.get(key) ?? 0) + sumSaleLines(sale.items));
   }
   const monthlyData = Array.from(monthlyMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
@@ -81,7 +82,7 @@ export default async function VenditePage({ searchParams }: { searchParams: Prom
 
   const clienteMap = new Map<string, number>();
   for (const sale of sales) {
-    clienteMap.set(sale.cliente, (clienteMap.get(sale.cliente) ?? 0) + sale.prezzo);
+    clienteMap.set(sale.cliente, (clienteMap.get(sale.cliente) ?? 0) + sumSaleLines(sale.items));
   }
   const clienteData = Array.from(clienteMap.entries())
     .sort(([, a], [, b]) => b - a)

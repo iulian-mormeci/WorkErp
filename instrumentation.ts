@@ -19,8 +19,12 @@ export async function register() {
   cron.schedule("0 * * * *", () => {
     void triggerUnoErpCron();
   });
+  cron.schedule("15 * * * *", () => {
+    void triggerNotificheCron();
+  });
 
   console.log("[unoerp-cron] scheduled hourly sync");
+  console.log("[notifiche-cron] scheduled hourly deadline check");
 }
 
 async function triggerUnoErpCron() {
@@ -37,5 +41,22 @@ async function triggerUnoErpCron() {
     });
   } catch (e) {
     console.error("[unoerp-cron] trigger failed:", e instanceof Error ? e.message : String(e));
+  }
+}
+
+async function triggerNotificheCron() {
+  const secret = process.env.NOTIFICHE_CRON_SECRET;
+  if (!secret) {
+    console.error("[notifiche-cron] NOTIFICHE_CRON_SECRET not set, skipping run");
+    return;
+  }
+  const port = process.env.PORT ?? "3000";
+  try {
+    await fetch(`http://127.0.0.1:${port}/api/notifiche/cron`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+  } catch (e) {
+    console.error("[notifiche-cron] trigger failed:", e instanceof Error ? e.message : String(e));
   }
 }

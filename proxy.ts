@@ -5,7 +5,7 @@ const PUBLIC_PATHS = ["/login"];
 
 // Route macchina-a-macchina che si autenticano da sole (bearer secret, non
 // cookie di sessione) — il proxy non deve intercettarle affatto.
-const UNAUTHENTICATED_API_PATHS = ["/api/unoerp/cron"];
+const UNAUTHENTICATED_API_PATHS = ["/api/unoerp/cron", "/api/notifiche/cron"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

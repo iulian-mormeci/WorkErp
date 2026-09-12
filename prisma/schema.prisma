@@ -38,6 +38,8 @@ model User {
   documents     Document[]
   conversationParticipations ConversationParticipant[]
   sentMessages               Message[]
+  pushSubscriptions       PushSubscription[]
+  notificationPreference  NotificationPreference?
   setting          Setting?
   unoErpCredential UnoErpCredential?
   category         UserCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -150,6 +152,9 @@ model Task {
   oraInizio   String? // "HH:mm" — fascia oraria disponibile per l'esecuzione, nel giorno di `scadenza`
   oraFine     String?
   createdAt   DateTime   @default(now())
+  // Segna quando è stato inviato l'avviso "scadenza in arrivo" — evita che
+  // il cron orario lo rimandi ad ogni giro finché la scadenza non cambia.
+  scadenzaNotificataAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   checklistItems ChecklistItem[]
@@ -182,6 +187,7 @@ model Job {
   note          String?
   categoria     String?
   priorita      String?
+  scadenzaNotificataAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   checklistItems ChecklistItem[]
@@ -429,4 +435,37 @@ model Message {
 
   @@index([conversationId])
   @@map("messages")
+}
+
+// --- Notifiche (push browser + email) ---
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// Una riga per utente, on/off per evento×canale. Assente = valori di
+// default (vedi lib/notify.ts) — creata solo quando l'utente cambia
+// qualcosa dalla pagina preferenze, non ad ogni login.
+model NotificationPreference {
+  userId          String  @id
+  scadenzaBrowser Boolean @default(true)
+  scadenzaEmail   Boolean @default(false)
+  statoBrowser    Boolean @default(true)
+  statoEmail      Boolean @default(false)
+  posticipoBrowser Boolean @default(true)
+  posticipoEmail   Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }

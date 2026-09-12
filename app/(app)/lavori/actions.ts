@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { pushCounts } from "@/lib/realtime/counts";
 import { recordTimelineEvent } from "@/lib/timeline";
+import { notifyUser } from "@/lib/notify";
+import { jobStatusLabel } from "@/lib/job-status";
 
 export type JobFormState = { error?: string } | undefined;
 
@@ -104,18 +106,20 @@ export async function updateJob(
       scadenza: parseDateField(formData.get("scadenza")),
       oraInizio: fascia.oraInizio,
       oraFine: fascia.oraFine,
+      scadenzaNotificataAt: null,
     },
   });
 
   // Il form di modifica tocca lo stato solo se l'utente lo cambia
   // esplicitamente: registra l'evento solo sulla vera transizione, non ad
   // ogni salvataggio del form (che potrebbe non toccare lo stato affatto).
-  if (nuovoStato !== existing.stato) {
-    if (nuovoStato === "in_corso") {
-      await recordTimelineEvent({ jobId: id }, "INIZIATO");
-    } else if (nuovoStato === "completato") {
-      await recordTimelineEvent({ jobId: id }, "COMPLETATO");
-    }
+  if (nuovoStato !== existing.stato && (nuovoStato === "in_corso" || nuovoStato === "completato")) {
+    await recordTimelineEvent({ jobId: id }, nuovoStato === "in_corso" ? "INIZIATO" : "COMPLETATO");
+    void notifyUser(user.id, "stato", {
+      title: `Lavoro ${jobStatusLabel(nuovoStato).toLowerCase()}`,
+      body: titolo,
+      url: `/lavori/${id}`,
+    });
   }
 
   revalidateJobPaths(id);
@@ -134,6 +138,11 @@ export async function closeJob(id: string) {
 
   await prisma.job.updateMany({ where: { id, userId: user.id }, data: { stato: "completato" } });
   await recordTimelineEvent({ jobId: id }, "COMPLETATO");
+  void notifyUser(user.id, "stato", {
+    title: "Lavoro completato",
+    body: existing.titolo,
+    url: `/lavori/${id}`,
+  });
 
   revalidateJobPaths(id);
   void pushCounts(user.id);
@@ -177,14 +186,16 @@ export async function postponeJob(
 
   await prisma.job.updateMany({
     where: { id, userId: user.id },
-    data: { scadenza: nuovaScadenza, oraInizio: fascia.oraInizio, oraFine: fascia.oraFine },
+    data: { scadenza: nuovaScadenza, oraInizio: fascia.oraInizio, oraFine: fascia.oraFine, scadenzaNotificataAt: null },
   });
 
-  await recordTimelineEvent(
-    { jobId: id },
-    "POSTICIPATO",
-    `Scadenza spostata dal ${formatShortDate(existing.scadenza)} al ${formatShortDate(nuovaScadenza)}`
-  );
+  const dettaglio = `Scadenza spostata dal ${formatShortDate(existing.scadenza)} al ${formatShortDate(nuovaScadenza)}`;
+  await recordTimelineEvent({ jobId: id }, "POSTICIPATO", dettaglio);
+  void notifyUser(user.id, "posticipo", {
+    title: "Lavoro posticipato",
+    body: `${existing.titolo} — ${dettaglio}`,
+    url: `/lavori/${id}`,
+  });
 
   revalidateJobPaths(id);
 }

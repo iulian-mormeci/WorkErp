@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { pushCounts } from "@/lib/realtime/counts";
 import { recordTimelineEvent } from "@/lib/timeline";
+import { notifyUser } from "@/lib/notify";
+import { TASK_STATUS_LABEL } from "@/lib/task-status";
 import type { TaskStatus } from "@/lib/generated/prisma/enums";
 
 export type TaskFormState = { error?: string } | undefined;
@@ -98,6 +100,10 @@ export async function updateTask(
       scadenza: parseScadenza(formData.get("scadenza")),
       oraInizio: fascia.oraInizio,
       oraFine: fascia.oraFine,
+      // Una scadenza cambiata è di fatto una nuova scadenza: l'avviso "in
+      // arrivo" va rivalutato dal cron, non resta soppresso da un invio
+      // fatto per la data precedente.
+      scadenzaNotificataAt: null,
     },
   });
 
@@ -110,6 +116,9 @@ export async function updateTask(
 
 export async function setTaskStatus(id: string, stato: TaskStatus) {
   const user = await requireUser();
+  const task = await prisma.task.findUnique({ where: { id }, select: { titolo: true, userId: true } });
+  if (!task || task.userId !== user.id) return;
+
   await prisma.task.updateMany({
     where: { id, userId: user.id },
     data: { stato },
@@ -118,10 +127,13 @@ export async function setTaskStatus(id: string, stato: TaskStatus) {
   // Ogni chiamata rappresenta un vero avanzamento (l'UI cicla sempre in
   // avanti DA_FARE -> IN_CORSO -> COMPLETATO -> DA_FARE): lo stato di
   // arrivo basta a decidere l'evento, senza dover rileggere quello precedente.
-  if (stato === "IN_CORSO") {
-    await recordTimelineEvent({ taskId: id }, "INIZIATO");
-  } else if (stato === "COMPLETATO") {
-    await recordTimelineEvent({ taskId: id }, "COMPLETATO");
+  if (stato === "IN_CORSO" || stato === "COMPLETATO") {
+    await recordTimelineEvent({ taskId: id }, stato === "IN_CORSO" ? "INIZIATO" : "COMPLETATO");
+    void notifyUser(user.id, "stato", {
+      title: `Attività ${TASK_STATUS_LABEL[stato].toLowerCase()}`,
+      body: task.titolo,
+      url: `/attivita/${id}`,
+    });
   }
 
   revalidatePath("/attivita");
@@ -166,14 +178,16 @@ export async function postponeTask(
 
   await prisma.task.updateMany({
     where: { id, userId: user.id },
-    data: { scadenza: nuovaScadenza, oraInizio: fascia.oraInizio, oraFine: fascia.oraFine },
+    data: { scadenza: nuovaScadenza, oraInizio: fascia.oraInizio, oraFine: fascia.oraFine, scadenzaNotificataAt: null },
   });
 
-  await recordTimelineEvent(
-    { taskId: id },
-    "POSTICIPATO",
-    `Scadenza spostata dal ${formatShortDate(existing.scadenza)} al ${formatShortDate(nuovaScadenza)}`
-  );
+  const dettaglio = `Scadenza spostata dal ${formatShortDate(existing.scadenza)} al ${formatShortDate(nuovaScadenza)}`;
+  await recordTimelineEvent({ taskId: id }, "POSTICIPATO", dettaglio);
+  void notifyUser(user.id, "posticipo", {
+    title: `Attività posticipata`,
+    body: `${existing.titolo} — ${dettaglio}`,
+    url: `/attivita/${id}`,
+  });
 
   revalidatePath("/attivita");
   revalidatePath(`/attivita/${id}`);

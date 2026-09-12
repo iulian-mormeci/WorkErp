@@ -31,7 +31,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ mes
     return new Response("Non trovato", { status: 404 });
   }
 
+  // Forza il download invece del rendering inline nel browser: un allegato
+  // di chat non è mai stato pensato per essere aperto/eseguito nella
+  // scheda (a differenza, ad esempio, di un'anteprima immagine), quindi non
+  // c'è motivo di lasciare al browser la scelta di come interpretarlo.
+  const filename = message.allegato.split("/").pop() ?? "allegato";
   return new Response(new Uint8Array(file.data), {
-    headers: { "Content-Type": file.contentType },
+    headers: {
+      "Content-Type": file.contentType,
+      "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 }

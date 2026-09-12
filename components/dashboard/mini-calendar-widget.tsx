@@ -45,6 +45,7 @@ export async function MiniCalendarWidget({ userId, baseDate }: { userId: string;
       title="Calendario"
       icon={CalendarDays}
       href={`/calendario?vista=settimana&data=${formatDateParam(weekStart)}`}
+      scrollable={false}
     >
       <MiniWeekGrid
         days={days}

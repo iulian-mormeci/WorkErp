@@ -5,11 +5,16 @@ export function WidgetShell({
   title,
   icon: Icon,
   href,
+  scrollable = true,
   children,
 }: {
   title: string;
   icon: LucideIcon;
   href: string;
+  // Alcuni widget (es. il mini-calendario) si adattano sempre esattamente
+  // all'altezza disponibile e non devono mai scrollare — per quelli si
+  // passa `scrollable={false}` invece dell'overflow-y-auto di default.
+  scrollable?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -29,7 +34,7 @@ export function WidgetShell({
           <span className="truncate">{title}</span>
         </Link>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+      <div className={`min-h-0 flex-1 ${scrollable ? "overflow-y-auto" : "overflow-hidden"}`}>{children}</div>
     </div>
   );
 }

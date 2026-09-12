@@ -120,8 +120,15 @@ export function MiniWeekGrid({
             {hourMarks.map((h) => (
               <span
                 key={h}
-                className="absolute right-1 -translate-y-1/2 text-xs text-muted"
-                style={{ top: pct(h * 60 - windowStart, windowMinutes) }}
+                className="absolute right-1 text-xs text-muted"
+                style={{
+                  top: pct(h * 60 - windowStart, windowMinutes),
+                  // L'etichetta è centrata sulla riga oraria, ma a inizio e
+                  // fine finestra centrarla la farebbe uscire dal contenitore
+                  // (che non scrolla): le due etichette estreme si ancorano
+                  // invece al proprio bordo, verso l'interno.
+                  transform: h === firstHour ? "translateY(0%)" : h === lastHour ? "translateY(-100%)" : "translateY(-50%)",
+                }}
               >
                 {h}:00
               </span>
@@ -200,10 +207,16 @@ export function MiniWeekGrid({
                       )}
                       onMouseEnter={(e) => handleEnter(o, e.currentTarget)}
                       onMouseLeave={() => setHover(null)}
-                      className={`absolute overflow-hidden rounded border px-1 text-xs leading-tight hover:opacity-80 ${COLOR_CLASSES[o.colorToken]}`}
+                      className={`absolute overflow-hidden rounded border px-1 text-xs leading-tight hover:opacity-80 hover:z-20 ${COLOR_CLASSES[o.colorToken]}`}
                       style={{
                         top: pct(startOffset, windowMinutes),
                         height: pct(duration, windowMinutes),
+                        // Un impegno breve (es. 15-30 min) su una finestra di
+                        // molte ore avrebbe un blocco alto pochi px, troppo
+                        // poco per il testo: si garantisce sempre almeno
+                        // un'altezza leggibile, anche a costo di sconfinare
+                        // leggermente su un impegno successivo libero sotto.
+                        minHeight: "1.1rem",
                         left: `${o.column * widthPct}%`,
                         width: `${widthPct}%`,
                       }}

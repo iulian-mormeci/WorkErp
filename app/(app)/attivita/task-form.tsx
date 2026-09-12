@@ -2,12 +2,8 @@
 
 import { useActionState } from "react";
 import type { Task } from "@/lib/generated/prisma/client";
+import { toDateInputValue, todayInputValue } from "@/lib/dates";
 import { createTask, updateTask, type TaskFormState } from "./actions";
-
-function toDateInputValue(date: Date | null) {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
-}
 
 type TaskAction = (state: TaskFormState, formData: FormData) => Promise<TaskFormState>;
 
@@ -65,7 +61,7 @@ export function TaskForm({
         <input
           type="date"
           name="scadenza"
-          defaultValue={toDateInputValue(task?.scadenza ?? null)}
+          defaultValue={toDateInputValue(task?.scadenza) || todayInputValue()}
           className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
         />
       </div>

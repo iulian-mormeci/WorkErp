@@ -3,12 +3,8 @@
 import { useActionState } from "react";
 import type { Job } from "@/lib/generated/prisma/client";
 import { JOB_STATUSES, JOB_STATUS_LABEL } from "@/lib/job-status";
+import { toDateInputValue, todayInputValue } from "@/lib/dates";
 import { createJob, updateJob, type JobFormState } from "./actions";
-
-function toDateInputValue(date: Date | null | undefined) {
-  if (!date) return "";
-  return date.toISOString().slice(0, 10);
-}
 
 type JobAction = (state: JobFormState, formData: FormData) => Promise<JobFormState>;
 
@@ -76,7 +72,7 @@ export function JobForm({ job, onSuccess }: { job?: Job; onSuccess: () => void }
           <input
             type="date"
             name="programmatoIl"
-            defaultValue={toDateInputValue(job.programmatoIl)}
+            defaultValue={toDateInputValue(job.programmatoIl) || todayInputValue()}
             className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
           />
         </div>
@@ -87,7 +83,7 @@ export function JobForm({ job, onSuccess }: { job?: Job; onSuccess: () => void }
         <input
           type="date"
           name="scadenza"
-          defaultValue={toDateInputValue(job?.scadenza)}
+          defaultValue={toDateInputValue(job?.scadenza) || todayInputValue()}
           className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
         />
       </div>

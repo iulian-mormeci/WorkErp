@@ -4,16 +4,17 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import type { Event } from "@/lib/generated/prisma/client";
+import { toDateInputValue, toDatetimeLocalValue } from "@/lib/dates";
 import { createEvent, deleteEvent, updateEvent, type EventFormState } from "@/app/(app)/calendario/actions";
 
-function toDatetimeLocal(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function toDateOnly(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+// `defaultDate` arriva dal server sempre a mezzanotte (giorno selezionato nel
+// calendario). Per un evento nuovo ci innestiamo l'ora corrente del browser,
+// così il campo orario parte dall'adesso invece che da 00:00.
+function withCurrentTime(date: Date): Date {
+  const now = new Date();
+  const result = new Date(date);
+  result.setHours(now.getHours(), now.getMinutes(), 0, 0);
+  return result;
 }
 
 export function EventFormPanel({
@@ -38,8 +39,8 @@ export function EventFormPanel({
     undefined
   );
 
-  const start = event?.inizio ?? defaultDate;
-  const end = event?.fine ?? new Date(defaultDate.getTime() + 60 * 60_000);
+  const start = event?.inizio ?? withCurrentTime(defaultDate);
+  const end = event?.fine ?? new Date(start.getTime() + 60 * 60_000);
 
   return (
     <div className="rounded-lg border border-line bg-surface p-4">
@@ -79,7 +80,7 @@ export function EventFormPanel({
           <input
             type="date"
             name="data"
-            defaultValue={toDateOnly(start)}
+            defaultValue={toDateInputValue(start)}
             required
             className="w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
           />
@@ -88,14 +89,14 @@ export function EventFormPanel({
             <input
               type="datetime-local"
               name="inizio"
-              defaultValue={toDatetimeLocal(start)}
+              defaultValue={toDatetimeLocalValue(start)}
               required
               className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
             />
             <input
               type="datetime-local"
               name="fine"
-              defaultValue={toDatetimeLocal(end)}
+              defaultValue={toDatetimeLocalValue(end)}
               required
               className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-pine"
             />

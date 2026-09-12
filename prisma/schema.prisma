@@ -36,6 +36,8 @@ model User {
   notes         Note[]
   sales         Sale[]
   documents     Document[]
+  conversationParticipations ConversationParticipant[]
+  sentMessages               Message[]
   setting          Setting?
   unoErpCredential UnoErpCredential?
   category         UserCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -377,4 +379,54 @@ model UnoErpCredential {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("unoerp_credentials")
+}
+
+// --- Chat interna ---
+//
+// Stato letto/non letto semplificato: un partecipante ha "letto fino a"
+// `lastReadAt` — un messaggio è letto per lui se `createdAt <= lastReadAt`.
+// Non è un receipt puntuale per messaggio/destinatario (niente doppia
+// spunta blu stile WhatsApp): molto più semplice da costruire e mantenere,
+// sufficiente per sapere "ho messaggi non letti in questa conversazione".
+
+model Conversation {
+  id        String   @id @default(cuid())
+  isGroup   Boolean  @default(false)
+  nome      String?
+  createdAt DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  joinedAt       DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  testo          String?
+  allegato       String?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("messages")
 }

@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Euro,
   FolderOpen,
+  MessageCircle,
 } from "lucide-react";
 
 export type NavItem = {
@@ -19,7 +20,7 @@ export type NavItem = {
   icon: LucideIcon;
   adminOnly?: boolean;
   /** Chiave del conteggio realtime da mostrare come badge (vedi lib/realtime/counts.ts). */
-  countKey?: "attivita" | "lavori";
+  countKey?: "attivita" | "lavori" | "chat";
 };
 
 // Voci mostrate nella sidebar (desktop/tablet) e, le prime quattro, nella
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/attivita", label: "Attività", icon: ListChecks, countKey: "attivita" },
   { href: "/lavori", label: "Lavori", icon: Wrench, countKey: "lavori" },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
+  { href: "/chat", label: "Chat", icon: MessageCircle, countKey: "chat" },
   { href: "/vendite", label: "Vendite", icon: Euro },
   { href: "/manuali", label: "Manuali e guide", icon: BookOpen },
   { href: "/documenti", label: "Documenti", icon: FolderOpen },

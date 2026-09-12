@@ -39,9 +39,8 @@ export function unregisterConnection(userId: string, ws: WebSocket) {
 }
 
 export type RealtimeEvent =
-  | { type: "counts"; attivita: number; lavori: number }
-  | { type: "chat:message"; conversationId: string; message: unknown }
-  | { type: "chat:unread"; conversationId: string };
+  | { type: "counts"; attivita: number; lavori: number; chat: number }
+  | { type: "chat:message"; conversationId: string; message: unknown };
 
 export function sendToUser(userId: string, event: RealtimeEvent) {
   const set = connections().get(userId);

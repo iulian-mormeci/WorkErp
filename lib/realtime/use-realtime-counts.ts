@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type Counts = { attivita: number; lavori: number };
+export type Counts = { attivita: number; lavori: number; chat: number };
 
 const RECONNECT_DELAY_MS = 3000;
 
@@ -27,7 +27,7 @@ export function useRealtimeCounts(initial: Counts): Counts {
         try {
           const data = JSON.parse(event.data);
           if (data.type === "counts") {
-            setCounts({ attivita: data.attivita, lavori: data.lavori });
+            setCounts({ attivita: data.attivita, lavori: data.lavori, chat: data.chat });
           }
         } catch {
           // messaggio non valido: ignorato, non è un evento che riguarda i badge.

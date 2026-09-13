@@ -1,11 +1,17 @@
 /**
- * Il timestamp `dal` di UnoERP indica la mezzanotte di un giorno osservata nel
- * fuso orario dell'ERP (Europe/Rome), non nel fuso del server che esegue
- * questo codice. `Date.setHours()` opera nel fuso del processo Node — su un
- * server impostato su UTC questo sposterebbe silenziosamente tutto al giorno
- * prima per qualunque fuso avanti rispetto a UTC. Queste utility rendono
- * esplicita la conversione invece di affidarsi al fuso locale del server.
+ * L'app non ha (né serve) un fuso orario configurabile per utente: è uno
+ * strumento per un'attività italiana, orari e date di UnoERP, Attività,
+ * Lavori e Calendario sono sempre civili italiani. Il fuso del *server* che
+ * esegue il processo Node è un'altra cosa — in produzione, in Docker, è
+ * quasi sempre UTC — e `Date.setHours()`/`new Date(y,m,d,h,min)` operano
+ * proprio in quel fuso, non in quello italiano: un orario "11:00" inserito
+ * o letto da UnoERP finirebbe salvato come 11:00 UTC, cioè le 13:00 ora
+ * italiana (CEST) una volta visualizzato. Queste utility rendono esplicita
+ * la conversione invece di affidarsi al fuso locale del server.
  */
+
+/** Fuso orario civile dell'app: mai letto da una preferenza utente. */
+export const APP_TIME_ZONE = "Europe/Rome";
 
 /** Offset (minuti) di `timeZone` rispetto a UTC nell'istante rappresentato da `date`. */
 function getTimeZoneOffsetMinutes(date: Date, timeZone: string): number {

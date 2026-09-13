@@ -1,6 +1,8 @@
 // Helper puri per il calendario: date native (nessuna libreria), calcoli di
 // griglia oraria e distribuzione in colonne delle occorrenze sovrapposte.
 
+import { APP_TIME_ZONE, zonedTimeToUtc, zonedYearMonthDay } from "@/lib/timezone";
+
 /** Altezza in px di un'ora nella griglia (giorno/settimana). */
 export const HOUR_ROW_HEIGHT_PX = 48;
 export const DAY_GRID_HEIGHT_PX = HOUR_ROW_HEIGHT_PX * 24;
@@ -54,12 +56,18 @@ export function minutesSinceMidnight(date: Date): number {
   return date.getHours() * 60 + date.getMinutes();
 }
 
-/** Combina l'anno/mese/giorno di `date` con un orario "HH:mm". */
+/**
+ * Combina l'anno/mese/giorno di `date` con un orario civile "HH:mm"
+ * (Attività/Lavori non hanno un fuso configurabile, vedi lib/timezone.ts).
+ * `setHours()` opererebbe nel fuso del *server*, non in quello italiano —
+ * in produzione, in Docker, il server è quasi sempre in UTC: un "11:00"
+ * finirebbe salvato come le 11:00 UTC, cioè le 13:00 ora italiana (CEST)
+ * una volta visualizzato.
+ */
 export function combineDateAndTime(date: Date, hhmm: string): Date {
   const [hours, minutes] = hhmm.split(":").map(Number);
-  const combined = new Date(date);
-  combined.setHours(hours, minutes, 0, 0);
-  return combined;
+  const { year, month, day } = zonedYearMonthDay(date, APP_TIME_ZONE);
+  return zonedTimeToUtc(year, month, day, hours, minutes, APP_TIME_ZONE);
 }
 
 /** "2026-09-10" -> mezzanotte locale di quel giorno; input mancante/non valido -> oggi. */

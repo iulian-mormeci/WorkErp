@@ -1,3 +1,19 @@
+# Caddy ottiene e rinnova da solo il certificato TLS (Let's Encrypt) per
+# questo dominio e, di default, reindirizza già l'HTTP verso l'HTTPS — qui
+# lo rendiamo esplicito e aggiungiamo HSTS (mai fornito di default da
+# Caddy) così i browser, dopo la prima visita, non tentano più nemmeno la
+# connessione in chiaro.
 workerp.mormeci.it {
 	reverse_proxy app:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
+
+http://workerp.mormeci.it {
+	redir https://workerp.mormeci.it{uri} permanent
 }

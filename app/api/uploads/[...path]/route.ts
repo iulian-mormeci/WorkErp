@@ -18,6 +18,13 @@ export async function GET(
   }
 
   return new Response(new Uint8Array(file.data), {
-    headers: { "Content-Type": file.contentType },
+    headers: {
+      "Content-Type": file.contentType,
+      // Impedisce al browser di "indovinare" un tipo diverso da quello
+      // dichiarato (es. un file rinominato) — qui non si forza il download
+      // (a differenza di /api/documenti/[id]) perché i Manuali sono aperti
+      // apposta in una nuova scheda per la visualizzazione inline.
+      "X-Content-Type-Options": "nosniff",
+    },
   });
 }

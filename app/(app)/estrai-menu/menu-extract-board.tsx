@@ -12,7 +12,14 @@ function toRows(items: MenuItem[]): Row[] {
 }
 
 function downloadCsv(rows: Row[]) {
-  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  // Un nome che inizia con = + - @ verrebbe interpretato come formula da
+  // Excel/Sheets ("CSV injection") — il testo viene da un PDF caricato
+  // dall'utente (potenzialmente il menu di terzi), quindi va neutralizzato
+  // anteponendo un apice, che forza l'interpretazione come testo.
+  const escape = (value: string) => {
+    const safe = /^[=+\-@]/.test(value) ? `'${value}` : value;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
   const header = ["Categoria", "Prodotto", "Prezzo"].join(";");
   const lines = rows.map((r) =>
     [escape(r.categoria), escape(r.prodotto), r.prezzo.toFixed(2).replace(".", ",")].join(";")

@@ -27,6 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     headers: {
       "Content-Type": file.contentType,
       "Content-Disposition": `attachment; filename="${encodeURIComponent(document.nomeOriginale)}"`,
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

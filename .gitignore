@@ -51,3 +51,7 @@ next-env.d.ts
 
 # stato locale di Claude Code (non del progetto)
 .claude/
+
+# file di prova lasciati nella root (es. PDF di test per "Estrai menu") —
+# non appartengono al repo, gli upload veri vanno in data/uploads
+/*.pdf

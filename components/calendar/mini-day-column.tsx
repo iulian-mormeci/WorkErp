@@ -6,12 +6,20 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { occurrenceHref } from "./occurrence-chip";
 import { packOverlaps, formatDateParam, isSameDay } from "@/lib/calendar/grid";
+import { APP_TIME_ZONE, zonedMinutesSinceMidnight, zonedTimeToUtc, zonedYearMonthDay } from "@/lib/timezone";
+import { Drawer } from "@/components/ui/drawer";
 import type { Occurrence, OccurrenceColor } from "@/lib/calendar/occurrences";
 
 const COLOR_CLASSES: Record<OccurrenceColor, string> = {
   pine: "border-pine/40 bg-pine/15 text-pine-strong",
   amber: "border-amber/40 bg-amber/15 text-amber",
   slate: "border-slate/40 bg-slate/15 text-slate",
+};
+
+const DOT_CLASSES: Record<OccurrenceColor, string> = {
+  pine: "bg-pine-strong",
+  amber: "bg-amber",
+  slate: "bg-slate",
 };
 
 const SOURCE_LABEL: Record<Occurrence["source"], string> = {
@@ -32,16 +40,15 @@ export type MiniWeekDay = {
 type HoverState = { occurrence: Occurrence; top: number; left: number; openUpward: boolean };
 
 /**
- * Vista settimana compatta per il widget di dashboard: 7 colonne giorno
- * affiancate più una colonnina oraria a sinistra, nessun px fisso — tutto in
- * percentuale rispetto a un'unica finestra oraria condivisa (min inizio –
- * max fine fra le fasce di lavoro dell'intera settimana) — si adatta sempre
- * all'altezza che la griglia del dashboard gli assegna, mai scroll. Al
- * passaggio del mouse su un'occorrenza mostra un popup con i dettagli, reso
- * via portal in `document.body`: i widget vivono dentro un `.react-grid-item`
- * con `transform` inline (react-grid-layout), e un ancestor con `transform`
- * diventa il containing block di `position: fixed` — senza portal il popup
- * finirebbe ancorato a quel riquadro invece che alla viewport.
+ * Vista settimana per il widget di dashboard: una griglia a 7 colonne su
+ * schermi larghi (adattata alla finestra oraria condivisa min/max fra le
+ * fasce di lavoro della settimana, mai scroll), sostituita sotto lo
+ * breakpoint `sm` da un elenco verticale giorno per giorno — 7 colonne
+ * strette non stanno in uno schermo di telefono, il testo risulterebbe
+ * illeggibile o tagliato. In entrambe le viste, toccare/cliccare
+ * un'occorrenza apre un pannello con tutti i dettagli invece di
+ * navigare via subito: su mobile non c'è hover per l'anteprima rapida
+ * (comunque presente sul desktop), quindi è l'unico modo di leggerli.
  */
 export function MiniWeekGrid({
   days,
@@ -61,10 +68,10 @@ export function MiniWeekGrid({
   rangeLabel: string;
 }) {
   const [hover, setHover] = useState<HoverState | null>(null);
+  const [selected, setSelected] = useState<Occurrence | null>(null);
   const windowMinutes = Math.max(1, windowEnd - windowStart);
   const today = new Date();
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowMinutes = zonedMinutesSinceMidnight(new Date(), APP_TIME_ZONE);
 
   const hourStep = windowMinutes > 8 * 60 ? 2 : 1;
   const firstHour = Math.ceil(windowStart / 60);
@@ -113,7 +120,51 @@ export function MiniWeekGrid({
         </Link>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-1">
+      {/* Elenco verticale: sotto sm, al posto della griglia a 7 colonne. */}
+      <div className="min-h-0 flex-1 overflow-y-auto sm:hidden">
+        <div className="flex flex-col divide-y divide-line">
+          {days.map((day) => {
+            const isToday = isSameDay(day.date, today);
+            const sorted = [...day.occurrences].sort((a, b) => {
+              if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
+              return a.start.getTime() - b.start.getTime();
+            });
+            return (
+              <div key={formatDateParam(day.date)} className="py-2">
+                <p
+                  className={`px-1 text-xs font-medium ${isToday ? "text-pine-strong" : "text-muted"}`}
+                >
+                  {WEEKDAY_LABELS[(day.date.getDay() + 6) % 7]}{" "}
+                  {day.date.toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
+                </p>
+                {sorted.length === 0 ? (
+                  <p className="px-1 py-1.5 text-sm text-muted">Nessun impegno</p>
+                ) : (
+                  <div className="mt-1 flex flex-col">
+                    {sorted.map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        onClick={() => setSelected(o)}
+                        className="flex items-center gap-2 rounded px-1 py-1.5 text-left hover:bg-paper"
+                      >
+                        <span className={`size-2 shrink-0 rounded-full ${DOT_CLASSES[o.colorToken]}`} />
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink">{o.titolo}</span>
+                        <span className="shrink-0 text-xs text-muted">
+                          {o.allDay ? "Tutto il giorno" : formatTimeRange(o)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Griglia a 7 colonne: da sm in su. */}
+      <div className="hidden min-h-0 flex-1 gap-1 sm:flex">
         <div className="relative w-11 shrink-0">
           <div className="mb-0.5 h-[1.35rem] shrink-0" />
           <div className="relative h-[calc(100%-1.35rem)]">
@@ -199,15 +250,13 @@ export function MiniWeekGrid({
                   const duration = Math.max(1, (o.end.getTime() - o.start.getTime()) / 60_000);
                   const widthPct = 100 / o.columns;
                   return (
-                    <Link
+                    <button
                       key={o.id}
-                      href={occurrenceHref(
-                        o,
-                        (eventoId) => `/calendario?vista=giorno&data=${dateStr}&evento=${eventoId}`
-                      )}
+                      type="button"
                       onMouseEnter={(e) => handleEnter(o, e.currentTarget)}
                       onMouseLeave={() => setHover(null)}
-                      className={`absolute overflow-hidden rounded border px-1 text-xs leading-tight hover:opacity-80 hover:z-20 ${COLOR_CLASSES[o.colorToken]}`}
+                      onClick={() => setSelected(o)}
+                      className={`absolute overflow-hidden rounded border px-1 text-left text-xs leading-tight hover:opacity-80 hover:z-20 ${COLOR_CLASSES[o.colorToken]}`}
                       style={{
                         top: pct(startOffset, windowMinutes),
                         height: pct(duration, windowMinutes),
@@ -222,7 +271,7 @@ export function MiniWeekGrid({
                       }}
                     >
                       {o.titolo}
-                    </Link>
+                    </button>
                   );
                 })}
               </div>
@@ -261,12 +310,56 @@ export function MiniWeekGrid({
           </div>,
           document.body
         )}
+
+      <Drawer
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        title={selected ? SOURCE_LABEL[selected.source] : ""}
+      >
+        {selected && (
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-base font-medium text-ink">{selected.titolo}</p>
+              <p className="mt-1 text-sm text-muted">
+                {selected.allDay ? "Tutto il giorno" : formatTimeRange(selected)}
+                {" · "}
+                {selected.start.toLocaleDateString("it-IT", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}
+              </p>
+            </div>
+            {selected.detail.subtitle && <p className="text-sm text-ink">{selected.detail.subtitle}</p>}
+            {selected.detail.stato && (
+              <p className="text-sm text-muted">Stato: {selected.detail.stato}</p>
+            )}
+            {selected.detail.description && (
+              <p className="whitespace-pre-wrap text-sm text-muted">{selected.detail.description}</p>
+            )}
+            <Link
+              href={occurrenceHref(
+                selected,
+                (eventoId) =>
+                  `/calendario?vista=giorno&data=${formatDateParam(selected.start)}&evento=${eventoId}`
+              )}
+              onClick={() => setSelected(null)}
+              className="mt-1 self-start rounded-md bg-pine-strong px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            >
+              Apri
+            </Link>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }
 
 function formatTimeRange(o: Occurrence) {
-  const fmt = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const fmt = (d: Date) => {
+    const minutes = zonedMinutesSinceMidnight(d, APP_TIME_ZONE);
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  };
   return `${fmt(o.start)}–${fmt(o.end)}`;
 }
 
@@ -275,15 +368,21 @@ function pct(value: number, total: number) {
 }
 
 function minutesSince(date: Date, windowStartMinutes: number) {
-  return date.getHours() * 60 + date.getMinutes() - windowStartMinutes;
+  return zonedMinutesSinceMidnight(date, APP_TIME_ZONE) - windowStartMinutes;
 }
 
 function clampToWindow(date: Date, windowStartMinutes: number, isEnd = false): Date {
-  const minutes = date.getHours() * 60 + date.getMinutes();
+  const minutes = zonedMinutesSinceMidnight(date, APP_TIME_ZONE);
   if (!isEnd && minutes < windowStartMinutes) {
-    const d = new Date(date);
-    d.setHours(Math.floor(windowStartMinutes / 60), windowStartMinutes % 60, 0, 0);
-    return d;
+    const { year, month, day } = zonedYearMonthDay(date, APP_TIME_ZONE);
+    return zonedTimeToUtc(
+      year,
+      month,
+      day,
+      Math.floor(windowStartMinutes / 60),
+      windowStartMinutes % 60,
+      APP_TIME_ZONE
+    );
   }
   return date;
 }

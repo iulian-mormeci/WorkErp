@@ -38,21 +38,40 @@ export function DashboardGrid({
     }, SAVE_DEBOUNCE_MS);
   }, []);
 
+  // Sotto sm: la griglia trascinabile/ridimensionabile a 12 colonne non ha
+  // senso su un telefono (le colonne diventerebbero troppo strette per
+  // qualunque contenuto, vedi il mini-calendario) — si passa a un elenco
+  // verticale a piena larghezza, un widget sotto l'altro. L'altezza di ogni
+  // widget resta quella salvata (in "unità riga", come nella griglia
+  // desktop): WidgetShell e i suoi contenuti assumono un'altezza definita
+  // dal genitore per gestire da soli lo scroll interno.
   return (
-    <div ref={containerRef}>
-      {mounted && (
-        <GridLayout
-          width={width}
-          layout={layout}
-          gridConfig={{ cols: 12, rowHeight: ROW_HEIGHT_PX, margin: [12, 12] }}
-          dragConfig={{ handle: ".widget-drag-handle" }}
-          onLayoutChange={handleLayoutChange}
-        >
-          {widgets.map((widget) => (
-            <div key={widget.tipoWidget}>{widget.node}</div>
-          ))}
-        </GridLayout>
-      )}
-    </div>
+    <>
+      <div className="flex flex-col gap-3 sm:hidden">
+        {widgets.map((widget) => {
+          const h = layout.find((item) => item.i === widget.tipoWidget)?.h ?? 8;
+          return (
+            <div key={widget.tipoWidget} style={{ height: h * ROW_HEIGHT_PX + (h - 1) * 12 }}>
+              {widget.node}
+            </div>
+          );
+        })}
+      </div>
+      <div ref={containerRef} className="hidden sm:block">
+        {mounted && (
+          <GridLayout
+            width={width}
+            layout={layout}
+            gridConfig={{ cols: 12, rowHeight: ROW_HEIGHT_PX, margin: [12, 12] }}
+            dragConfig={{ handle: ".widget-drag-handle" }}
+            onLayoutChange={handleLayoutChange}
+          >
+            {widgets.map((widget) => (
+              <div key={widget.tipoWidget}>{widget.node}</div>
+            ))}
+          </GridLayout>
+        )}
+      </div>
+    </>
   );
 }

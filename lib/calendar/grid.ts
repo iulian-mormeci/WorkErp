@@ -1,7 +1,7 @@
 // Helper puri per il calendario: date native (nessuna libreria), calcoli di
 // griglia oraria e distribuzione in colonne delle occorrenze sovrapposte.
 
-import { APP_TIME_ZONE, zonedTimeToUtc, zonedYearMonthDay } from "@/lib/timezone";
+import { APP_TIME_ZONE, zonedMinutesSinceMidnight, zonedTimeToUtc, zonedYearMonthDay } from "@/lib/timezone";
 
 /** Altezza in px di un'ora nella griglia (giorno/settimana). */
 export const HOUR_ROW_HEIGHT_PX = 48;
@@ -31,8 +31,14 @@ export function addMonths(date: Date, months: number): Date {
   return d;
 }
 
+// Confronta il giorno civile italiano, non quello nel fuso del processo
+// (server o browser): vicino alla mezzanotte italiana i due possono
+// differire (es. le 00:30 di Roma sono ancora le 22:30 UTC del giorno
+// prima), sbagliando quale giorno evidenziare come "oggi".
 export function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const za = zonedYearMonthDay(a, APP_TIME_ZONE);
+  const zb = zonedYearMonthDay(b, APP_TIME_ZONE);
+  return za.year === zb.year && za.month === zb.month && za.day === zb.day;
 }
 
 // Lunedì come inizio settimana (convenzione italiana, coerente con l'ordine
@@ -52,8 +58,16 @@ export function startOfYear(date: Date): Date {
   return new Date(date.getFullYear(), 0, 1);
 }
 
+/**
+ * Minuti dalla mezzanotte di `date`, in orario civile italiano — mai
+ * `date.getHours()`, che leggerebbe l'ora nel fuso del processo (server o
+ * browser) invece che in quello dell'app. Usata per posizionare le
+ * occorrenze nella griglia oraria: un errore qui sposta visivamente ogni
+ * evento/attività/lavoro dell'orario pari alla differenza fra il fuso del
+ * processo e quello italiano.
+ */
 export function minutesSinceMidnight(date: Date): number {
-  return date.getHours() * 60 + date.getMinutes();
+  return zonedMinutesSinceMidnight(date, APP_TIME_ZONE);
 }
 
 /**

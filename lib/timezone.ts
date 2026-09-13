@@ -55,6 +55,21 @@ export function zonedYearMonthDay(date: Date, timeZone: string): { year: number;
   return { year: Number(map.year), month: Number(map.month), day: Number(map.day) };
 }
 
+/** Minuti dalla mezzanotte di `date`, osservati in `timeZone` (non nel fuso del server). */
+export function zonedMinutesSinceMidnight(date: Date, timeZone: string): number {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const map: Record<string, string> = {};
+  for (const part of dtf.formatToParts(date)) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+  return Number(map.hour) * 60 + Number(map.minute);
+}
+
 /** Converte un orario "civile" Y/M/D + H:m in `timeZone` nel corrispondente istante UTC. */
 export function zonedTimeToUtc(
   year: number,

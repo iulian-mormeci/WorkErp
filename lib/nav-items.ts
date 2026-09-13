@@ -12,6 +12,7 @@ import {
   Euro,
   FolderOpen,
   MessageCircle,
+  ScanText,
 } from "lucide-react";
 
 export type NavItem = {
@@ -35,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/vendite", label: "Vendite", icon: Euro },
   { href: "/manuali", label: "Manuali e guide", icon: BookOpen },
   { href: "/documenti", label: "Documenti", icon: FolderOpen },
+  { href: "/estrai-menu", label: "Estrai menu", icon: ScanText },
   { href: "/note", label: "Note", icon: StickyNote },
   { href: "/account", label: "Account", icon: UserRound },
   { href: "/impostazioni", label: "Impostazioni", icon: Settings },

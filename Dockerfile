@@ -7,7 +7,11 @@ FROM node:22-slim AS base
 WORKDIR /app
 # Il motore delle migration di Prisma cerca libssl per parlare con Postgres;
 # senza, funziona comunque ma stampa un warning ad ogni comando.
-RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+# tesseract-ocr (+ pacchetto lingua italiana) serve per l'estrazione menu da
+# PDF scansionati/fotografati (vedi lib/menu-pdf.ts) — nessun servizio
+# esterno, gira interamente nel container.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  openssl tesseract-ocr tesseract-ocr-ita \
   && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
@@ -37,6 +41,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma7.config.ts ./prisma7.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/server.ts ./server.ts
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh && mkdir -p ./data/uploads && chown -R nextjs:nodejs ./data

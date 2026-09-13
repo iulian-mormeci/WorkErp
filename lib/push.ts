@@ -5,13 +5,22 @@ const publicKey = process.env.VAPID_PUBLIC_KEY;
 const privateKey = process.env.VAPID_PRIVATE_KEY;
 const subject = process.env.VAPID_SUBJECT;
 
-const configured = Boolean(publicKey && privateKey && subject);
+// Come SMTP: se la configurazione manca o non è valida, le notifiche push
+// si disattivano da sole (log e via) invece di far fallire ogni pagina che
+// importa questo modulo — è già successo con una chiave VAPID scritta male
+// (non URL-safe base64), che mandava in crash l'intera Impostazioni.
+let configured = Boolean(publicKey && privateKey && subject);
 if (configured) {
-  webpush.setVapidDetails(subject!, publicKey!, privateKey!);
+  try {
+    webpush.setVapidDetails(subject!, publicKey!, privateKey!);
+  } catch (err) {
+    configured = false;
+    console.error("[push] VAPID non valide, notifiche push disattivate:", err);
+  }
 }
 
 export function getVapidPublicKey(): string | null {
-  return publicKey ?? null;
+  return configured ? (publicKey ?? null) : null;
 }
 
 export type PushPayload = { title: string; body: string; url?: string };

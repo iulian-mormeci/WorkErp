@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Plus, BookOpen, Library } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
+import { markdownExcerpt } from "@/lib/markdown";
+import { ManualList } from "./manual-list";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 type Filters = { q?: string; marca?: string; modello?: string; categoria?: string };
@@ -161,37 +163,20 @@ export default async function ManualiPage({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {manuali.map((manual) => (
-            <Link
-              key={manual.id}
-              href={`/manuali/${manual.id}`}
-              className="rounded-md border border-line bg-surface p-3 hover:border-pine"
-            >
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-ink">{manual.titolo}</p>
-                {manual.ownerId !== user.id && (
-                  <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-muted">
-                    Dalla libreria
-                  </span>
-                )}
-                {manual.ownerId === user.id && manual.isPublic && (
-                  <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-muted">
-                    {manual.moderazioneStato === "APPROVATO"
-                      ? "Pubblico"
-                      : manual.moderazioneStato === "RIFIUTATO"
-                        ? "Rifiutato"
-                        : "In attesa di approvazione"}
-                  </span>
-                )}
-              </div>
-              <p className="mt-0.5 text-xs text-muted">
-                {[manual.marca, manual.modello, manual.categoria].filter(Boolean).join(" · ") ||
-                  "Nessun dettaglio aggiuntivo"}
-              </p>
-            </Link>
-          ))}
-        </div>
+        <ManualList
+          currentUserId={user.id}
+          manuali={manuali.map((manual) => ({
+            id: manual.id,
+            titolo: manual.titolo,
+            marca: manual.marca,
+            modello: manual.modello,
+            categoria: manual.categoria,
+            ownerId: manual.ownerId,
+            isPublic: manual.isPublic,
+            moderazioneStato: manual.moderazioneStato,
+            excerpt: markdownExcerpt(manual.contenuto),
+          }))}
+        />
       )}
     </div>
   );

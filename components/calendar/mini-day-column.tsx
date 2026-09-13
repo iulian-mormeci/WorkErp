@@ -73,11 +73,12 @@ export function MiniWeekGrid({
   const today = new Date();
   const nowMinutes = zonedMinutesSinceMidnight(new Date(), APP_TIME_ZONE);
 
-  const hourStep = windowMinutes > 8 * 60 ? 2 : 1;
+  // Un'ora per riga, come nella griglia oraria della pagina Calendario (mai
+  // saltarne una anche su finestre ampie).
   const firstHour = Math.ceil(windowStart / 60);
   const lastHour = Math.floor(windowEnd / 60);
   const hourMarks: number[] = [];
-  for (let h = firstHour; h <= lastHour; h += hourStep) hourMarks.push(h);
+  for (let h = firstHour; h <= lastHour; h += 1) hourMarks.push(h);
 
   const handleEnter = (occurrence: Occurrence, target: HTMLElement) => {
     const rect = target.getBoundingClientRect();

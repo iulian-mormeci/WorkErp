@@ -1,15 +1,27 @@
 # Deploy sul VPS: `docker compose -f docker-compose.prod.yml up -d`.
-# Richiede un file .env accanto a questo (vedi .env.example) e, per
-# scaricare l'immagine da GHCR se il repo è privato, un
-# `docker login ghcr.io` fatto una volta sola sul VPS.
+# Richiede un file .env accanto a questo (vedi .env.example).
+#
+# Nessun Caddy in questo file: il VPS di riferimento ha già nginx nativo
+# (gestito con systemctl, non in Docker) davanti ad altre app — workerp
+# espone solo una porta interna (127.0.0.1, mai raggiungibile da internet
+# direttamente) e nginx fa da reverse proxy per il dominio, con il proprio
+# certificato via certbot. Vedi il blocco server nginx (incluse le righe
+# Upgrade/Connection, necessarie per il WebSocket di chat e notifiche)
+# nelle istruzioni di deploy.
+#
+# Se in futuro serve un VPS dedicato solo a workerp, senza un altro reverse
+# proxy già presente, il Caddyfile in questo repo resta un'alternativa
+# pronta: basta reintrodurre un servizio `caddy` che monta quel file e
+# pubblica le porte 80/443, e togliere il mapping di porta da `app` qui
+# sotto (Caddy raggiungerebbe `app:3000` sulla rete Docker interna).
 services:
   app:
-    # OWNER/REPO in minuscolo (i tag Docker/OCI non ammettono maiuscole),
-    # anche se il repo su GitHub le usa nel nome — vedi .github/workflows/docker-publish.yml
-    image: ghcr.io/owner/repo:latest
+    image: ghcr.io/iulian-mormeci/workerp:latest
     env_file: .env
     depends_on:
       - db
+    ports:
+      - "127.0.0.1:3001:3000"
     volumes:
       - uploads-data:/app/data/uploads
     restart: unless-stopped
@@ -21,19 +33,6 @@ services:
       - db-data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy-data:/data
-      - caddy-config:/config
-    restart: unless-stopped
-
 volumes:
   db-data:
   uploads-data:
-  caddy-data:
-  caddy-config:

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Da lanciare sul VPS, nella cartella che contiene docker-compose.prod.yml,
-# Caddyfile e .env (vedi README/istruzioni di deploy). Scarica l'ultima
-# immagine pubblicata su GHCR e riavvia i servizi.
+# Da lanciare sul VPS, nella cartella che contiene docker-compose.prod.yml
+# e .env (vedi README/istruzioni di deploy). Scarica l'ultima immagine
+# pubblicata su GHCR e riavvia i servizi.
 set -euo pipefail
 cd "$(dirname "$0")"
 

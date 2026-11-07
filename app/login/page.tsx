@@ -2,19 +2,24 @@
 
 import { useActionState } from "react";
 import { login } from "./actions";
+import { BrandMark } from "@/components/brand-mark";
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, undefined);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper px-4">
+    <div className="flex min-h-screen items-center justify-center bg-paper bg-[radial-gradient(60rem_30rem_at_50%_-10%,color-mix(in_srgb,var(--color-pine)_12%,transparent),transparent)] px-4">
       <form
         action={formAction}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-surface p-8"
+        className="w-full max-w-sm space-y-5 rounded-xl border border-line bg-surface p-8"
       >
+        <div className="flex items-center gap-2.5">
+          <BrandMark className="size-8" />
+          <span className="text-[0.9375rem] font-semibold tracking-tight text-ink">Workerp</span>
+        </div>
         <div>
-          <p className="text-sm font-semibold tracking-tight text-ink">Workerp</p>
-          <h1 className="mt-3 text-lg font-medium text-ink">Accedi</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">Accedi</h1>
+          <p className="mt-1 text-sm text-muted">Inserisci le tue credenziali per continuare.</p>
         </div>
 
         <div className="space-y-1">
@@ -45,12 +50,16 @@ export default function LoginPage() {
           />
         </div>
 
-        {state?.error && <p className="text-sm text-danger">{state.error}</p>}
+        {state?.error && (
+          <p role="alert" className="text-sm text-danger">
+            {state.error}
+          </p>
+        )}
 
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-md bg-pine-strong px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          className="w-full rounded-md bg-pine-strong px-3 py-2.5 text-sm font-medium text-white hover:bg-pine disabled:opacity-50"
         >
           {pending ? "Accesso in corso…" : "Accedi"}
         </button>

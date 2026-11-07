@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --color-paper: #f3f4f2;
+  color-scheme: light;
+  --color-paper: #f5f4f0;
   --color-surface: #ffffff;
-  --color-ink: #20262b;
-  --color-muted: #667079;
-  --color-line: #dcdfdc;
-  --color-pine: #2f6f63;
-  --color-pine-strong: #21524a;
-  --color-amber: #c47a1f;
-  --color-danger: #b3432f;
-  --color-slate: #4c6b80;
+  --color-ink: #1b2024;
+  --color-muted: #646d74;
+  --color-line: #e3e2dc;
+  --color-pine: #2d7564;
+  --color-pine-strong: #1f5a4c;
+  --color-amber: #b86f14;
+  --color-danger: #b23c2a;
+  --color-slate: #456a82;
 
   --shell-width-sidebar: 15rem;
   --shell-height-topbar: 3.5rem;
@@ -18,16 +19,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-paper: #14181b;
-    --color-surface: #1b2023;
-    --color-ink: #e7e9e8;
-    --color-muted: #8b959c;
-    --color-line: #2a3033;
-    --color-pine: #4f9c8c;
-    --color-pine-strong: #6bb5a4;
-    --color-amber: #d99a3f;
-    --color-danger: #d97562;
-    --color-slate: #7fa3ba;
+    color-scheme: dark;
+    --color-paper: #101315;
+    --color-surface: #171b1e;
+    --color-ink: #e9ebea;
+    --color-muted: #8d979e;
+    --color-line: #262c30;
+    --color-pine: #52a592;
+    --color-pine-strong: #3f8b7a;
+    --color-amber: #dba04a;
+    --color-danger: #e07d69;
+    --color-slate: #82a8bf;
   }
 }
 
@@ -42,13 +44,59 @@
   --color-amber: var(--color-amber);
   --color-danger: var(--color-danger);
   --color-slate: var(--color-slate);
-  --font-sans: var(--font-plex-sans);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
 body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-pine) 25%, transparent);
+}
+
+/* Anello di focus uniforme e visibile solo da tastiera, su tutta l'app. */
+:focus-visible {
+  outline: 2px solid var(--color-pine);
+  outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  transition: border-color 120ms, box-shadow 120ms;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-pine) 18%, transparent);
+}
+
+a,
+button {
+  transition: color 120ms, background-color 120ms, opacity 120ms;
+}
+
+/* Le "card" dell'app sono tutte bordo + superficie: un'ombra appena
+   percettibile le stacca dallo sfondo senza toccare ogni componente. */
+.border-line.bg-surface {
+  box-shadow: 0 1px 2px rgb(16 19 21 / 0.04), 0 1px 1px rgb(16 19 21 / 0.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
 }
 
 .markdown-body {

@@ -7,6 +7,7 @@ import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav-items";
 import { logout } from "@/app/logout-action";
 import { useRealtimeCounts, type Counts } from "@/lib/realtime/use-realtime-counts";
+import { BrandMark } from "@/components/brand-mark";
 
 const COLLAPSE_STORAGE_KEY = "workerp:sidebar-collapsed";
 const COLLAPSE_CHANGE_EVENT = "workerp:sidebar-collapsed-change";
@@ -83,7 +84,12 @@ export function Sidebar({
         collapsed ? "md:w-16" : "md:w-[var(--shell-width-sidebar)]"
       }`}
     >
-      <div className="flex h-[var(--shell-height-topbar)] items-center px-5">
+      <div
+        className={`flex h-[var(--shell-height-topbar)] items-center gap-2.5 ${
+          collapsed ? "justify-center" : "px-5"
+        }`}
+      >
+        <BrandMark />
         {!collapsed && (
           <span className="truncate text-[0.9375rem] font-semibold tracking-tight text-ink">
             Workerp
@@ -152,8 +158,16 @@ export function Sidebar({
             </button>
           </form>
         ) : (
-          <div className="flex items-center justify-between gap-2 px-3">
-            <span className="truncate text-sm text-ink">{nome}</span>
+          <div className="flex items-center justify-between gap-2 px-1">
+            <span className="flex min-w-0 items-center gap-2.5">
+              <span
+                aria-hidden
+                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-paper text-xs font-semibold text-ink"
+              >
+                {nome.trim().charAt(0).toUpperCase()}
+              </span>
+              <span className="truncate text-sm text-ink">{nome}</span>
+            </span>
             <form action={logout}>
               <button type="submit" className="shrink-0 text-sm text-muted hover:text-ink">
                 Esci

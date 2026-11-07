@@ -11,6 +11,7 @@ const WORKER_SCRIPT = path.join(process.cwd(), "scripts", "extract-menu-worker.t
 // specifier letterale verrebbe tracciato e impacchettato dal bundler di
 // Next, che poi fallisce a risolvere un binario CLI a runtime — qui serve
 // solo il percorso su disco, mai un vero require del modulo.
+const WORKER_TIMEOUT_MS = 5 * 60 * 1000;
 const TSX_CLI = path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
 
 /**
@@ -45,7 +46,12 @@ export async function extractMenuFromPdf(buffer: Buffer): Promise<MenuExtraction
 
 function runWorker(pdfPath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(process.execPath, [TSX_CLI, WORKER_SCRIPT, pdfPath]);
+    // Un PDF malformato o enorme non deve tenere occupato un processo OCR
+    // all'infinito: oltre il limite il worker viene terminato.
+    const proc = spawn(process.execPath, [TSX_CLI, WORKER_SCRIPT, pdfPath], {
+      timeout: WORKER_TIMEOUT_MS,
+      killSignal: "SIGKILL",
+    });
     let stdout = "";
     let stderr = "";
     proc.stdout.on("data", (chunk) => (stdout += chunk));
@@ -53,7 +59,7 @@ function runWorker(pdfPath: string): Promise<string> {
     proc.on("error", reject);
     proc.on("close", (code) => {
       if (code === 0 && stdout) resolve(stdout);
-      else reject(new Error(stderr || stdout || `processo di estrazione uscito con codice ${code}`));
+      else reject(new Error(stderr || stdout || `processo di estrazione uscito con codice ${code ?? "timeout"}`));
     });
   });
 }

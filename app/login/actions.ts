@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/auth/password";
+import { verifyAgainstDummy, verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { checkRateLimit, resetRateLimit } from "@/lib/auth/rate-limit";
 
@@ -16,10 +16,9 @@ export type LoginState = { error?: string } | undefined;
 const MAX_ATTEMPTS_PER_EMAIL = 8;
 const MAX_ATTEMPTS_PER_IP = 30;
 
-// Dietro Caddy (unico reverse proxy davanti all'app, vedi
-// docker-compose.prod.yml) X-Forwarded-For ha l'IP reale del client come
-// ULTIMO valore: Caddy accoda sempre il proprio hop, un client non può
-// sovrascriverlo, solo aggiungere valori finti PRIMA di esso.
+// Dietro un solo reverse proxy (nginx con $proxy_add_x_forwarded_for, o
+// Caddy) X-Forwarded-For ha l'IP reale del client come ULTIMO valore: il
+// proxy lo accoda sempre, un client può solo aggiungere valori finti PRIMA.
 async function getClientIp(): Promise<string> {
   const forwardedFor = (await headers()).get("x-forwarded-for");
   if (!forwardedFor) return "unknown";
@@ -48,7 +47,7 @@ export async function login(
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
-  const valid = user ? await verifyPassword(user.passwordHash, password) : false;
+  const valid = user ? await verifyPassword(user.passwordHash, password) : await verifyAgainstDummy(password);
 
   if (!user || !valid) {
     return { error: "Credenziali non valide." };
